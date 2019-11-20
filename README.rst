@@ -2,8 +2,8 @@
 radiome
 =======
 
-.. image:: https://pyup.io/repos/github/ccraddock/radiome/shield.svg
-    :target: https://pyup.io/repos/github/ccraddock/radiome/
+.. image:: https://pyup.io/repos/github/radiome-flow/radiome/shield.svg
+    :target: https://pyup.io/repos/github/radiome-flow/radiome/
     :alt: Updates
      
 .. image:: https://codecov.io/gh/radiome-flow/radiome/branch/master/graph/badge.svg
