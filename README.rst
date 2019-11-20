@@ -8,7 +8,9 @@ radiome
 .. image:: https://pyup.io/repos/github/ccraddock/radiome/shield.svg
      :target: https://pyup.io/repos/github/ccraddock/radiome/
      :alt: Updates
-
+     
+.. image:: https://codecov.io/gh/radiome-flow/radiome/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/radiome-flow/radiome
 
 
 Configurable Pipeline for the Analysis of Medical Imaging Data.
