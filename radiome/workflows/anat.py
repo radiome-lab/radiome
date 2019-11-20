@@ -8,8 +8,8 @@ inputs = [
     ResourceKey()
 ]
 
+
 def create_workflow(workflow, configuration, resource_pool: ResourcePool):
 
     inputs = []
     outputs = []
-
