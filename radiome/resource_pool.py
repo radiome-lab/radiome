@@ -1,13 +1,13 @@
-from typing import Union, List
+from typing import Union, List, Dict
 
 class ResourceKey(object):
 
-    supported_entities = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to', 'suffix']
-    valid_suffixes = []
+    supported_entities: List[str] = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to', 'suffix']
+    valid_suffixes: List[str] = []
 
     def __init__(self, entity_dictionary: Union[str, dict]) -> None:
 
-        self.entity_dictionary = {}
+        self.entity_dictionary: Dict[str, str] = {}
 
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
@@ -69,8 +69,6 @@ class ResourceKey(object):
 
         return self.entity_dictionary[item]
 
-    def __eq__(self, other):
-        
 
 class Resource(object):
 
