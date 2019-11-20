@@ -2,7 +2,24 @@ from unittest import TestCase
 from radiome import resource_pool
 
 
-class TestResourceKey(TestCase):
+class TestResourcePool(TestCase):
+
+    def test_resource_pool(self):
+
+        rp = resource_pool.ResourcePool()
+
+        workflow = object()
+        slot = 'output_file'
+        flags = ['write_to_mni', 'smooth_before', 'write_at_4mm', 'qc_carpet']
+
+        resource_key = resource_pool.ResourceKey('atlas-aal_roi-112_desc-afni_mask')
+        resource = resource_pool.Resource(workflow, slot, flags)
+
+        rp[resource_key] = resource
+
+        self.assertEqual(rp[resource_key], resource)
+        self.assertEqual(rp['write_to_mni'][resource_key], resource)
+        self.assertEqual(rp['mask'][resource_key], resource)
 
     def test_resource_key(self):
 

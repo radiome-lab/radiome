@@ -1,11 +1,11 @@
-
+from typing import Union, List
 
 class ResourceKey(object):
 
-    supported_entities = ['space', 'desc', 'suffix', 'atlas', 'roi', 'label', 'hemi', 'from', 'to']
+    supported_entities = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to', 'suffix']
     valid_suffixes = []
 
-    def __init__(self, entity_dictionary):
+    def __init__(self, entity_dictionary: Union[str, dict]) -> None:
 
         self.entity_dictionary = {}
 
@@ -45,17 +45,18 @@ class ResourceKey(object):
             raise ValueError('Could not extract suffix from entity_dictionary')
 
     def __str__(self):
-
-        string_components = []
-
-        for entity in self.supported_entities:
-            if entity != 'suffix':
-                if entity in self.entity_dictionary:
-                    string_components.append('-'.join([entity, self.entity_dictionary[entity]]))
-
-        string_components.append(self.entity_dictionary['suffix'])
-
-        return '_'.join(string_components)
+        
+        return '_'.join(
+            [
+                '-'.join([entity, self.entity_dictionary[entity]])
+                for entity in self.supported_entities
+                if entity in self.entity_dictionary and entity != 'suffix'
+            ]
+                + 
+            [
+                self.entity_dictionary['suffix']
+            ]
+        )
 
     def __hash__(self):
 
@@ -68,11 +69,40 @@ class ResourceKey(object):
 
         return self.entity_dictionary[item]
 
+    def __eq__(self, other):
+        
 
 class Resource(object):
 
-    def __init__(self, workflow_node, slot, flags):
-
+    def __init__(self, workflow_node, slot, flags: List[str]):
         self.workflow_node = workflow_node
         self.slot = slot
         self.flags = flags
+
+
+class ResourcePool(object):
+
+    def __init__(self):
+        self.pool_dictionary = {}
+
+    def __getitem__(self, resource_key: Union[ResourceKey, str]) -> Resource:
+        
+        if isinstance(resource_key, ResourceKey):
+            return self.pool_dictionary[resource_key['suffix']][resource_key]
+        else:
+            return self.pool_dictionary[resource_key]
+
+    def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
+
+        if resource_key['suffix'] not in self.pool_dictionary:
+            self.pool_dictionary[resource_key['suffix']] = {}
+
+        if resource_key in self.pool_dictionary[resource_key['suffix']]:
+            raise KeyError(f'Resource key {resource_key} already exists in the pool.')
+
+        self.pool_dictionary[resource_key['suffix']][resource_key] = resource
+
+        for flag in resource.flags:
+            if flag not in self.pool_dictionary:
+                self.pool_dictionary[flag] = {}
+            self.pool_dictionary[flag][resource_key] = resource
