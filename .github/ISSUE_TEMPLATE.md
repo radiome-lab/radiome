@@ -1,6 +1,6 @@
-*  radiome version:
-*  Python version:
-*  Operating System:
+*   radiome version:
+*   Python version:
+*   Operating System:
 
 ### Description
 
