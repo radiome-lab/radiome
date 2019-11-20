@@ -33,13 +33,17 @@ class TestResourcePool(TestCase):
         value = 'now is the time for all good men to come to the aid of their country'
 
         new_key_from_string = resource_pool.ResourceKey(key_string)
-
         new_key_from_dict = resource_pool.ResourceKey(key_dict)
+        new_key_from_kwargs = resource_pool.ResourceKey(**key_dict)
 
         self.assertEqual(str(new_key_from_string), str(new_key_from_dict))
+        self.assertEqual(str(new_key_from_string), str(new_key_from_kwargs))
+        self.assertEqual(str(new_key_from_dict), str(new_key_from_kwargs))
         self.assertEqual(new_key_from_string['desc'], new_key_from_dict['desc'])
 
         temp_dict_from_string = {new_key_from_string: value}
         temp_dict_from_dict = {new_key_from_dict: value}
+        temp_dict_from_kwargs = {new_key_from_kwargs: value}
 
         self.assertEqual(temp_dict_from_string[new_key_from_string], temp_dict_from_dict[new_key_from_dict])
+        self.assertEqual(temp_dict_from_string[new_key_from_string], temp_dict_from_kwargs[new_key_from_kwargs])

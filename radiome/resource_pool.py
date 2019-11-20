@@ -5,9 +5,14 @@ class ResourceKey(object):
     supported_entities: List[str] = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to', 'suffix']
     valid_suffixes: List[str] = []
 
-    def __init__(self, entity_dictionary: Union[str, dict]) -> None:
+    def __init__(self,
+                 entity_dictionary: Union[str, Dict[str, str], None] = None,
+                 **kwargs) -> None:
 
         self.entity_dictionary: Dict[str, str] = {}
+
+        if not entity_dictionary:
+            entity_dictionary = kwargs
 
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
