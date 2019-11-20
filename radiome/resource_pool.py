@@ -50,14 +50,14 @@ class ResourceKey(object):
             raise ValueError('Could not extract suffix from entity_dictionary')
 
     def __str__(self):
-        
+
         return '_'.join(
             [
                 '-'.join([entity, self.entity_dictionary[entity]])
                 for entity in self.supported_entities
                 if entity in self.entity_dictionary and entity != 'suffix'
             ]
-                + 
+                +
             [
                 self.entity_dictionary['suffix']
             ]
@@ -89,7 +89,7 @@ class ResourcePool(object):
         self.pool_dictionary = {}
 
     def __getitem__(self, resource_key: Union[ResourceKey, str]) -> Resource:
-        
+
         if isinstance(resource_key, ResourceKey):
             return self.pool_dictionary[resource_key['suffix']][resource_key]
         else:
