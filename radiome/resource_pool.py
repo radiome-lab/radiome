@@ -6,11 +6,16 @@ class ResourceKey(object):
     supported_entities: List[str] = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to']
     valid_suffixes: List[str] = ['mask']
 
+    suffix: str = ''
+    entity_dictionary: Dict[str, str] = {}
+    strategy: List[str] = []
+
     def __init__(self,
                  entity_dictionary: Union[str, Dict[str, str], None] = None,
                  **kwargs) -> None:
 
-        self.entity_dictionary: Dict[str, str] = {}
+        self.entity_dictionary = {}
+        self.strategy = []
 
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
@@ -51,7 +56,7 @@ class ResourceKey(object):
             # ensure immutability
             entity_dictionary = { str(k): str(v) for k, v in entity_dictionary.items() }
 
-            suffix = entity_dictionary.get('suffix')
+            suffix = entity_dictionary.get('suffix', '')
             if suffix not in self.valid_suffixes:
                 raise ValueError(f'Invalid suffix "{suffix}" in "{entity_dictionary}"')
 
