@@ -2,8 +2,8 @@ from typing import Union, List, Dict
 
 class ResourceKey(object):
 
-    supported_entities: List[str] = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to', 'suffix']
-    valid_suffixes: List[str] = []
+    supported_entities: List[str] = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to']
+    valid_suffixes: List[str] = ['mask']
 
     def __init__(self,
                  entity_dictionary: Union[str, Dict[str, str], None] = None,
@@ -11,31 +11,51 @@ class ResourceKey(object):
 
         self.entity_dictionary: Dict[str, str] = {}
 
-        if not entity_dictionary:
-            entity_dictionary = kwargs
-
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
 
-            for entity_pair in entity_dictionary.split('_'):
+            *entities, suffix = entity_dictionary.split('_')
 
-                if '-' in entity_pair:
-                    key, value = entity_pair.split('-')
-                else:
-                    key = 'suffix'
-                    value = entity_pair
+            if '-' in suffix:
+                raise ValueError(f'Suffix not provided in "{entity_dictionary}"')
 
-                if not value or not isinstance(value, str):
-                    raise ValueError(f'Value must be a string, and cannot be empty ({value})')
+            if suffix not in self.valid_suffixes:
+                raise ValueError(f'Invalid suffix "{suffix}" in "{entity_dictionary}"')
 
-                if key in self.supported_entities:
-                    self.entity_dictionary[key] = value
-                else:
-                    raise KeyError(f'Entity {key} is not supported by the resource pool')
+            self.suffix = suffix
 
-        # initialize from a dictionary
-        elif isinstance(entity_dictionary, dict):
+            for entity_pair in entities:
+
+                if '-' not in entity_pair:
+                    raise ValueError(f'Invalid entity pair "{entity_pair}" in "{entity_dictionary}"')
+
+                key, value = entity_pair.split('-', 1)
+
+                if not value:
+                    raise ValueError(f'Entity value cannot be empty: "{value}"')
+
+                if key not in self.supported_entities:
+                    raise KeyError(f'Entity "{key}" is not supported by the resource pool')
+
+                self.entity_dictionary[key] = value
+
+        # initialize from a dictionary or custom parameters
+        elif isinstance(entity_dictionary, dict) or kwargs:
+
+            # add custom entities
+            if not entity_dictionary:
+                entity_dictionary = {}
+            entity_dictionary.update(kwargs)
+
+            suffix = entity_dictionary.get('suffix')
+            if suffix not in self.valid_suffixes:
+                raise ValueError(f'Invalid suffix "{suffix}" in "{entity_dictionary}"')
+
             for key, value in entity_dictionary.items():
+
+                if key == 'suffix':
+                    self.suffix = str(value)
+                    continue
 
                 if key not in self.supported_entities:
                     raise KeyError(f'Entity {key} is not supported by the resource pool')
@@ -43,11 +63,8 @@ class ResourceKey(object):
                 self.entity_dictionary[key] = str(value)
 
         else:
-            raise ValueError(f'Function argument entity_dictionary should be a str or dict,'
+            raise ValueError(f'Provided entity_dictionary must be a string or dictionary,'
                              f' not a {type(entity_dictionary)}')
-
-        if 'suffix' not in self.entity_dictionary:
-            raise ValueError('Could not extract suffix from entity_dictionary')
 
     def __str__(self):
 
@@ -55,11 +72,11 @@ class ResourceKey(object):
             [
                 '-'.join([entity, self.entity_dictionary[entity]])
                 for entity in self.supported_entities
-                if entity in self.entity_dictionary and entity != 'suffix'
+                if entity in self.entity_dictionary
             ]
                 +
             [
-                self.entity_dictionary['suffix']
+                self.suffix
             ]
         )
 
@@ -68,6 +85,9 @@ class ResourceKey(object):
         return hash(self.__str__())
 
     def __getitem__(self, item):
+
+        if item == 'suffix':
+            return self.suffix
 
         if item not in self.supported_entities:
             raise KeyError(f'Entity {item} is not supported by the resource pool')
