@@ -1,5 +1,6 @@
 from typing import Union, List, Dict
 
+
 class ResourceKey(object):
 
     supported_entities: List[str] = ['space', 'desc', 'atlas', 'roi', 'label', 'hemi', 'from', 'to']
@@ -47,6 +48,9 @@ class ResourceKey(object):
                 entity_dictionary = {}
             entity_dictionary.update(kwargs)
 
+            # ensure immutability
+            entity_dictionary = { str(k): str(v) for k, v in entity_dictionary.items() }
+
             suffix = entity_dictionary.get('suffix')
             if suffix not in self.valid_suffixes:
                 raise ValueError(f'Invalid suffix "{suffix}" in "{entity_dictionary}"')
@@ -54,13 +58,13 @@ class ResourceKey(object):
             for key, value in entity_dictionary.items():
 
                 if key == 'suffix':
-                    self.suffix = str(value)
+                    self.suffix = value
                     continue
 
                 if key not in self.supported_entities:
                     raise KeyError(f'Entity {key} is not supported by the resource pool')
 
-                self.entity_dictionary[key] = str(value)
+                self.entity_dictionary[key] = value
 
         else:
             raise ValueError(f'Provided entity_dictionary must be a string or dictionary,'
