@@ -1,5 +1,6 @@
 from unittest import TestCase
 from radiome import resource_pool
+from radiome.resource_pool import Resource, ResourceKey, ResourcePool
 
 
 class TestResourcePool(TestCase):
@@ -20,6 +21,60 @@ class TestResourcePool(TestCase):
         self.assertEqual(rp[resource_key], resource)
         self.assertEqual(rp['write_to_mni'][resource_key], resource)
         self.assertEqual(rp['mask'][resource_key], resource)
+
+    def test_resource_pool_extraction(self):
+
+        workflow = object()
+        slot = 'output_file'
+
+        rp = resource_pool.ResourcePool()
+
+        rp['space-original_T1w'] = resource_pool.Resource(workflow, slot)
+        
+        rp['space-original_desc-skullstrip-afni_mask'] = resource_pool.Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-bet_mask'] = resource_pool.Resource(workflow, slot)
+
+        rp['space-original_desc-skullstrip-afni+nuis-gsr_bold'] = resource_pool.Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-bet+nuis-gsr_bold'] = resource_pool.Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-afni+nuis-nogsr_bold'] = resource_pool.Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-bet+nuis-nogsr_bold'] = resource_pool.Resource(workflow, slot)
+
+        rp['space-MNI_desc-nuis-gsr_mask'] = resource_pool.Resource(workflow, slot)
+        rp['space-MNI_desc-nuis-nogsr_mask'] = resource_pool.Resource(workflow, slot)
+
+        extraction = dict(rp.extract(
+            'space-original_T1w',
+            'space-original_mask',
+            'space-original_bold',
+            'space-MNI_mask'
+        ))
+
+        self.assertEqual(len(extraction), 4)
+
+        self.assertEqual(
+            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-original_T1w')],
+            rp[ResourceKey('space-original_T1w')]
+        )
+
+        self.assertEqual(
+            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-original_bold')],
+            rp[ResourceKey('space-original_desc-skullstrip-bet+nuis-gsr_bold')]
+        )
+
+        self.assertEqual(
+            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-original_bold')],
+            rp[ResourceKey('space-original_desc-skullstrip-bet+nuis-gsr_bold')]
+        )
+
+        self.assertEqual(
+            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-original_bold')],
+            rp[ResourceKey('space-original_desc-skullstrip-bet+nuis-gsr_bold')]
+        )
+
+        self.assertEqual(
+            extraction['skullstrip-bet+nuis-nogsr'][ResourceKey('space-MNI_mask')],
+            rp[ResourceKey('space-MNI_desc-nuis-nogsr_mask')]
+        )
 
     def test_resource_key(self):
 
@@ -50,6 +105,14 @@ class TestResourcePool(TestCase):
 
         self.assertEqual(temp_dict_from_string[new_key_from_string], temp_dict_from_dict[new_key_from_dict])
         self.assertEqual(temp_dict_from_string[new_key_from_string], temp_dict_from_kwargs[new_key_from_kwargs])
+
+        original_key = ResourceKey('atlas-aal_roi-112_desc-skullstripping-afni_mask')
+
+        self.assertTrue(ResourceKey('desc-skullstripping-afni_mask') in original_key)
+        self.assertFalse(ResourceKey('desc-nuis-gsr_mask') in original_key)
+
+        # Strategy matching
+        self.assertTrue(original_key in ResourceKey('atlas-aal_roi-112_desc-skullstripping-afni+nuis-gsr_mask'))
 
     def test_invalid_resource_key(self):
         # case 1: invalid entity
