@@ -1,5 +1,4 @@
 from unittest import TestCase
-from radiome import resource_pool
 from radiome.resource_pool import Resource, ResourceKey, ResourcePool
 
 
@@ -7,14 +6,14 @@ class TestResourcePool(TestCase):
 
     def test_resource_pool(self):
 
-        rp = resource_pool.ResourcePool()
+        rp = ResourcePool()
 
         workflow = object()
         slot = 'output_file'
         flags = ['write_to_mni', 'smooth_before', 'write_at_4mm', 'qc_carpet']
 
-        resource_key = resource_pool.ResourceKey('atlas-aal_roi-112_desc-afni_mask')
-        resource = resource_pool.Resource(workflow, slot, flags)
+        resource_key = ResourceKey('atlas-aal_roi-112_desc-afni_mask')
+        resource = Resource(workflow, slot, flags)
 
         rp[resource_key] = resource
 
@@ -27,20 +26,20 @@ class TestResourcePool(TestCase):
         workflow = object()
         slot = 'output_file'
 
-        rp = resource_pool.ResourcePool()
+        rp = ResourcePool()
 
-        rp['space-original_T1w'] = resource_pool.Resource(workflow, slot)
+        rp['space-original_T1w'] = Resource(workflow, slot)
         
-        rp['space-original_desc-skullstrip-afni_mask'] = resource_pool.Resource(workflow, slot)
-        rp['space-original_desc-skullstrip-bet_mask'] = resource_pool.Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-afni_mask'] = Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-bet_mask'] = Resource(workflow, slot)
 
-        rp['space-original_desc-skullstrip-afni+nuis-gsr_bold'] = resource_pool.Resource(workflow, slot)
-        rp['space-original_desc-skullstrip-bet+nuis-gsr_bold'] = resource_pool.Resource(workflow, slot)
-        rp['space-original_desc-skullstrip-afni+nuis-nogsr_bold'] = resource_pool.Resource(workflow, slot)
-        rp['space-original_desc-skullstrip-bet+nuis-nogsr_bold'] = resource_pool.Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-afni+nuis-gsr_bold'] = Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-bet+nuis-gsr_bold'] = Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-afni+nuis-nogsr_bold'] = Resource(workflow, slot)
+        rp['space-original_desc-skullstrip-bet+nuis-nogsr_bold'] = Resource(workflow, slot)
 
-        rp['space-MNI_desc-nuis-gsr_mask'] = resource_pool.Resource(workflow, slot)
-        rp['space-MNI_desc-nuis-nogsr_mask'] = resource_pool.Resource(workflow, slot)
+        rp['space-MNI_desc-nuis-gsr_mask'] = Resource(workflow, slot)
+        rp['space-MNI_desc-nuis-nogsr_mask'] = Resource(workflow, slot)
 
         extraction = dict(rp.extract(
             'space-original_T1w',
@@ -87,9 +86,9 @@ class TestResourcePool(TestCase):
 
         value = 'now is the time for all good men to come to the aid of their country'
 
-        new_key_from_string = resource_pool.ResourceKey(key_string)
-        new_key_from_dict = resource_pool.ResourceKey(key_dict)
-        new_key_from_kwargs = resource_pool.ResourceKey(**key_dict)
+        new_key_from_string = ResourceKey(key_string)
+        new_key_from_dict = ResourceKey(key_dict)
+        new_key_from_kwargs = ResourceKey(**key_dict)
 
         self.assertEqual(str(new_key_from_string), str(new_key_from_dict))
         self.assertEqual(str(new_key_from_string), str(new_key_from_kwargs))
@@ -126,13 +125,13 @@ class TestResourcePool(TestCase):
         invalid_key_string = 'atlas-aal_roi-112_desc-afni_something_emmm_mask'
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(invalid_key_string)
+            ResourceKey(invalid_key_string)
 
         with self.assertRaises(KeyError):
-            resource_pool.ResourceKey(invalid_key_dict)
+            ResourceKey(invalid_key_dict)
 
         with self.assertRaises(KeyError):
-            resource_pool.ResourceKey(**invalid_key_dict)
+            ResourceKey(**invalid_key_dict)
 
         # case 2: no suffix
         key_dict_without_suffix = {
@@ -144,20 +143,20 @@ class TestResourcePool(TestCase):
         key_string_without_suffix = 'atlas-aal_roi-112_desc-afni'
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(key_string_without_suffix)
+            ResourceKey(key_string_without_suffix)
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(key_dict_without_suffix)
+            ResourceKey(key_dict_without_suffix)
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(**key_dict_without_suffix)
+            ResourceKey(**key_dict_without_suffix)
 
         # case 3: Wrong input type
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey([])
+            ResourceKey([])
             
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(bool)
+            ResourceKey(bool)
 
         # case 4: String in invalid format
         # key_string_invalid_form1 = 'atlas-aal-112_desc-afni_mask'
@@ -168,19 +167,19 @@ class TestResourcePool(TestCase):
         key_string_invalid_form6 = ''
 
         # with self.assertRaises(ValueError):
-        #     resource_pool.ResourceKey(key_string_invalid_form1)
+        #     ResourceKey(key_string_invalid_form1)
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(key_string_invalid_form2)
+            ResourceKey(key_string_invalid_form2)
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(key_string_invalid_form3)
+            ResourceKey(key_string_invalid_form3)
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(key_string_invalid_form4)
+            ResourceKey(key_string_invalid_form4)
             
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(key_string_invalid_form5)
+            ResourceKey(key_string_invalid_form5)
 
         with self.assertRaises(ValueError):
-            resource_pool.ResourceKey(key_string_invalid_form6)
+            ResourceKey(key_string_invalid_form6)
