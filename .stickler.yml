@@ -1,9 +1,9 @@
 linters:
   flake8:
     python: 3
-    fixer: true
+    fixer: false
   pytype:
     config: ./pytype.cfg
-    fixer: true
+    fixer: false
 fixers:
-  enable: true
+  enable: false
