@@ -10,10 +10,10 @@ class TestResourcePool(TestCase):
 
         workflow = object()
         slot = 'output_file'
-        flags = ['write_to_mni', 'smooth_before', 'write_at_4mm', 'qc_carpet']
+        tags = ['write_to_mni', 'smooth_before', 'write_at_4mm', 'qc_carpet']
 
-        resource_key = ResourceKey('atlas-aal_roi-112_desc-afni_mask')
-        resource = Resource(workflow, slot, flags)
+        resource_key = ResourceKey('atlas-aal_roi-112_desc-afni_mask', tags=tags)
+        resource = Resource(workflow, slot)
 
         rp[resource_key] = resource
 
