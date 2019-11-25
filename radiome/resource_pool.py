@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple, Dict
+from typing import Union, List, Dict
 import itertools
 
 
@@ -151,7 +151,7 @@ class ResourceKey(object):
                     if entity in self._entities:
                         return False
                 else:
-                    
+
                     if entity not in self._entities:
                         return False
 
@@ -293,7 +293,7 @@ class ResourcePool(object):
                     strategies[strategy].add(name)
 
         strategies_keys, strategies_values_set = strategies.keys(), strategies.values()
-        
+
         for strategies_values in itertools.product(*strategies_values_set):
 
             strategy_combination = '+'.join([

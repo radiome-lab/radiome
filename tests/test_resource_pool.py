@@ -29,7 +29,7 @@ class TestResourcePool(TestCase):
         rp = ResourcePool()
 
         rp['space-original_T1w'] = Resource(workflow, slot)
-        
+
         rp['space-original_desc-skullstrip-afni_mask'] = Resource(workflow, slot)
         rp['space-original_desc-skullstrip-bet_mask'] = Resource(workflow, slot)
 
@@ -154,7 +154,7 @@ class TestResourcePool(TestCase):
         # case 3: Wrong input type
         with self.assertRaises(ValueError):
             ResourceKey([])
-            
+
         with self.assertRaises(ValueError):
             ResourceKey(bool)
 
@@ -177,7 +177,7 @@ class TestResourcePool(TestCase):
 
         with self.assertRaises(ValueError):
             ResourceKey(key_string_invalid_form4)
-            
+
         with self.assertRaises(ValueError):
             ResourceKey(key_string_invalid_form5)
 
