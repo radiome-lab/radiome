@@ -1,20 +1,25 @@
 from typing import Union, List, Tuple, Dict
 import itertools
 
+
 class ResourceKey(object):
 
-    supported_entities: List[str] = ['space', 'atlas', 'roi', 'label', 'hemi', 'from', 'to', 'desc']
+    supported_entities: List[str] = ['space', 'atlas', 'roi', 'label',
+                                     'hemi', 'from', 'to', 'desc']
     valid_suffixes: List[str] = ['mask', 'bold', 'T1w']
 
     _suffix: str
     _entities: Dict[str, str]
-    
+    _tags: List[str]
+
     def __init__(self,
                  entity_dictionary: Union[str, Dict[str, str], None] = None,
+                 tags: Union[List[str], None] = None,
                  **kwargs) -> None:
 
         self._entities = {}
         self._suffix = ''
+        self._tags = tags or []
 
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
@@ -22,25 +27,30 @@ class ResourceKey(object):
             *entities, suffix = entity_dictionary.split('_')
 
             if '-' in suffix:
-                raise ValueError(f'Suffix not provided in "{entity_dictionary}"')
+                raise ValueError(f'Suffix not provided'
+                                 f'in "{entity_dictionary}"')
 
             if suffix not in self.valid_suffixes:
-                raise ValueError(f'Invalid suffix "{suffix}" in "{entity_dictionary}"')
+                raise ValueError(f'Invalid suffix "{suffix}"'
+                                 f' in "{entity_dictionary}"')
 
             self._suffix = suffix
 
             for entity_pair in entities:
 
                 if '-' not in entity_pair:
-                    raise ValueError(f'Invalid entity pair "{entity_pair}" in "{entity_dictionary}"')
+                    raise ValueError(f'Invalid entity pair "{entity_pair}" '
+                                     f'in "{entity_dictionary}"')
 
                 key, value = entity_pair.split('-', 1)
 
                 if not value:
-                    raise ValueError(f'Entity value cannot be empty: "{value}"')
+                    raise ValueError(f'Entity value cannot '
+                                     f'be empty: "{value}"')
 
                 if key not in self.supported_entities:
-                    raise KeyError(f'Entity "{key}" is not supported by the resource pool')
+                    raise KeyError(f'Entity "{key}" is not supported '
+                                   f'by the resource pool')
 
                 self._entities[key] = value
 
@@ -48,11 +58,15 @@ class ResourceKey(object):
         elif isinstance(entity_dictionary, dict):
 
             # ensure immutability
-            entity_dictionary = { str(k): str(v) for k, v in entity_dictionary.items() }
+            entity_dictionary = {
+                str(k): str(v)
+                for k, v in entity_dictionary.items()
+            }
 
             suffix = entity_dictionary.get('suffix', '')
             if suffix not in self.valid_suffixes:
-                raise ValueError(f'Invalid suffix "{suffix}" in "{entity_dictionary}"')
+                raise ValueError(f'Invalid suffix "{suffix}"'
+                                 f' in "{entity_dictionary}"')
             else:
                 self._suffix = suffix
 
@@ -61,18 +75,21 @@ class ResourceKey(object):
                     continue
 
                 if key not in self.supported_entities:
-                    raise KeyError(f'Entity {key} is not supported by the resource pool')
+                    raise KeyError(f'Entity {key} is not supported '
+                                   f'by the resource pool')
 
                 self._entities[key] = value
 
         elif not kwargs:
-            raise ValueError(f'Provided entity_dictionary must be a string or dictionary,'
-                             f' not a {type(entity_dictionary)}')
-                            
+            raise ValueError(f'Provided entity_dictionary must be '
+                             f'a string or dictionary, not a '
+                             f'{type(entity_dictionary)}')
+
         if kwargs:
             suffix = kwargs.get('suffix', self._suffix)
             if suffix not in self.valid_suffixes:
-                raise ValueError(f'Invalid suffix "{suffix}" in "{entity_dictionary}"')
+                raise ValueError(f'Invalid suffix "{suffix}" in '
+                                 f'"{entity_dictionary}"')
             else:
                 self._suffix = suffix
 
@@ -81,32 +98,29 @@ class ResourceKey(object):
                     continue
 
                 if key not in self.supported_entities:
-                    raise KeyError(f'Entity {key} is not supported by the resource pool')
+                    raise KeyError(f'Entity {key} is not supported '
+                                   f'by the resource pool')
 
                 self._entities[key] = value
 
     def __repr__(self):
         return str(self)
 
-    def __str__(self):
+    def __hash__(self):
+        return hash(self.__str__())
 
+    def __str__(self):
         return '_'.join(
             [
                 '-'.join([entity, self._entities[entity]])
                 for entity in self.supported_entities
                 if entity in self._entities
             ]
-                +
+            +
             [
                 self._suffix
             ]
         )
-
-    def __hash__(self):
-        return hash(self.__str__())
-
-    def __eq__(self, other):
-        return hash(self) == hash(other)
 
     def __getitem__(self, item):
 
@@ -114,31 +128,13 @@ class ResourceKey(object):
             return self._suffix
 
         if item not in self.supported_entities:
-            raise KeyError(f'Entity {item} is not supported by the resource pool')
+            raise KeyError(f'Entity {item} is not supported '
+                           f'by the resource pool')
 
         return self._entities[item]
 
-    @property
-    def suffix(self):
-        return self._suffix
-
-    @property
-    def strategy(self):
-        if not self._entities.get('desc'):
-            return {}
-
-        return {
-            k: v
-            for k, v in [
-                strat.split('-')
-                for strat in self._entities.get('desc', '').split('+')
-            ]
-         }
-
-    @property
-    def entities(self):
-
-        return { k: v for k, v in self._entities.items() }
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     def __contains__(self, key):
 
@@ -150,13 +146,25 @@ class ResourceKey(object):
             for entity, value in key.entities.items():
                 if entity == 'desc':
                     continue
-                if entity not in self._entities:
-                    return False
-                if value != self._entities[entity]:
-                    return False
+
+                if value == '^':
+                    if entity in self._entities:
+                        return False
+                else:
+                    
+                    if entity not in self._entities:
+                        return False
+
+                    if value != self._entities[entity]:
+                        return False
 
             if 'desc' in key.entities:
-                if 'desc' not in self._entities:
+
+                if key.entities['desc'] == '^':
+                    if 'desc' in self._entities:
+                        return False
+
+                elif 'desc' not in self._entities:
                     return False
 
                 my_strat = self.strategy
@@ -168,9 +176,40 @@ class ResourceKey(object):
                     if v != my_strat[k]:
                         return False
 
+            if key.tags:
+                if not self._tags:
+                    return False
+                if not all(tag in self._tags for tag in key.tags):
+                    return False
+
             return True
 
         return False
+
+    @property
+    def suffix(self):
+        return self._suffix
+
+    @property
+    def tags(self):
+        return [t for t in self._tags]
+
+    @property
+    def strategy(self):
+        if not self._entities.get('desc'):
+            return {}
+
+        return {
+            k: v
+            for k, v in [
+                strat.split('-', 1)
+                for strat in self._entities.get('desc', '').split('+')
+            ]
+        }
+
+    @property
+    def entities(self):
+        return {k: v for k, v in self._entities.items()}
 
     @staticmethod
     def from_key(key):
@@ -182,22 +221,21 @@ class ResourceKey(object):
 
 class Resource(object):
 
-    def __init__(self, workflow_node, slot, flags: Union[List[str], None] = None):
+    def __init__(self, workflow_node, slot):
         self.workflow_node = workflow_node
         self.slot = slot
-        self.flags = flags or []
 
 
 class ResourcePool(object):
 
     _pool: Dict[ResourceKey, Resource]
     _pool_by_type: Dict[str, Dict[ResourceKey, Resource]]
-    _pool_by_flag: Dict[str, Dict[ResourceKey, Resource]]
+    _pool_by_tag: Dict[str, Dict[ResourceKey, Resource]]
 
     def __init__(self):
         self._pool = {}
         self._pool_by_type = {}
-        self._pool_by_flag = {}
+        self._pool_by_tag = {}
 
     def __contains__(self, key: ResourceKey) -> bool:
         return key in self._pool
@@ -210,10 +248,10 @@ class ResourcePool(object):
             if key in self._pool_by_type:
                 return self._pool_by_type[key]
 
-            if key in self._pool_by_flag:
-                return self._pool_by_flag[key]
+            if key in self._pool_by_tag:
+                return self._pool_by_tag[key]
 
-            raise KeyError(f'Key "{key}" not find in suffixes or flags')
+            raise KeyError(f'Key "{key}" not find in suffixes or tags')
 
     def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
 
@@ -226,14 +264,15 @@ class ResourcePool(object):
             self._pool_by_type[resource_key['suffix']] = {}
 
         if resource_key in self._pool_by_type[resource_key['suffix']]:
-            raise KeyError(f'Resource key {resource_key} already exists in the pool.')
+            raise KeyError(f'Resource key {resource_key} already '
+                           f'exists in the pool.')
 
         self._pool_by_type[resource_key['suffix']][resource_key] = resource
 
-        for flag in resource.flags:
+        for flag in resource_key.tags:
             if flag not in self._pool:
-                self._pool_by_flag[flag] = {}
-            self._pool_by_flag[flag][resource_key] = resource
+                self._pool_by_tag[flag] = {}
+            self._pool_by_tag[flag][resource_key] = resource
 
     def extract(self, *resources):
 
@@ -243,8 +282,10 @@ class ResourcePool(object):
         for resource in resources:
             resource = ResourceKey.from_key(resource)
 
-            extracted_resources[resource] = [r for r in self._pool if resource in r]
- 
+            extracted_resources[resource] = [
+                r for r in self._pool if resource in r
+            ]
+
             for matching in extracted_resources[resource]:
                 for strategy, name in matching.strategy.items():
                     if strategy not in strategies:
@@ -252,6 +293,7 @@ class ResourcePool(object):
                     strategies[strategy].add(name)
 
         strategies_keys, strategies_values_set = strategies.keys(), strategies.values()
+        
         for strategies_values in itertools.product(*strategies_values_set):
 
             strategy_combination = '+'.join([
@@ -268,8 +310,11 @@ class ResourcePool(object):
                     str(resource),
                     desc=strategy_combination,
                 )
-                
-                strategy_extracted = [e for e in extracted if e in resource_filter]
+
+                strategy_extracted = [
+                    e for e in extracted if e in resource_filter
+                ]
+
                 if strategy_extracted:
                     if len(strategy_extracted) > 1:
                         raise ValueError
@@ -278,7 +323,7 @@ class ResourcePool(object):
 
                 else:
                     break
-                
+
             # Assert strategy has all the resources required
             if all(e in extracted_resource_pool for e in extracted_resources):
                 yield strategy_combination, extracted_resource_pool
