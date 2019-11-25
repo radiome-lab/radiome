@@ -2,7 +2,7 @@ from typing import Union, List, Dict
 import itertools
 
 
-class ResourceKey(object):
+class ResourceKey:
 
     supported_entities: List[str] = ['space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
@@ -67,8 +67,7 @@ class ResourceKey(object):
             if suffix not in self.valid_suffixes:
                 raise ValueError(f'Invalid suffix "{suffix}"'
                                  f' in "{entity_dictionary}"')
-            else:
-                self._suffix = suffix
+            self._suffix = suffix
 
             for key, value in entity_dictionary.items():
                 if key == 'suffix':
@@ -90,8 +89,7 @@ class ResourceKey(object):
             if suffix not in self.valid_suffixes:
                 raise ValueError(f'Invalid suffix "{suffix}" in '
                                  f'"{entity_dictionary}"')
-            else:
-                self._suffix = suffix
+            self._suffix = suffix
 
             for key, value in kwargs.items():
                 if key == 'suffix':
@@ -219,14 +217,14 @@ class ResourceKey(object):
         return ResourceKey(key)
 
 
-class Resource(object):
+class Resource:
 
     def __init__(self, workflow_node, slot):
         self.workflow_node = workflow_node
         self.slot = slot
 
 
-class ResourcePool(object):
+class ResourcePool:
 
     _pool: Dict[ResourceKey, Resource]
     _pool_by_type: Dict[str, Dict[ResourceKey, Resource]]
@@ -244,14 +242,14 @@ class ResourcePool(object):
 
         if isinstance(key, ResourceKey):
             return self._pool[key]
-        else:
-            if key in self._pool_by_type:
-                return self._pool_by_type[key]
 
-            if key in self._pool_by_tag:
-                return self._pool_by_tag[key]
+        if key in self._pool_by_type:
+            return self._pool_by_type[key]
 
-            raise KeyError(f'Key "{key}" not find in suffixes or tags')
+        if key in self._pool_by_tag:
+            return self._pool_by_tag[key]
+
+        raise KeyError(f'Key "{key}" not find in suffixes or tags')
 
     def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
 
