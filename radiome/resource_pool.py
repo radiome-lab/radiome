@@ -4,9 +4,12 @@ import itertools
 
 class ResourceKey:
 
-    supported_entities: List[str] = ['space', 'atlas', 'roi', 'label',
+    supported_entities: List[str] = ['sub', 'ses', 'run',
+                                     'space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
     valid_suffixes: List[str] = ['mask', 'bold', 'T1w']
+
+    branching_entities: List[str] = ['sub', 'ses', 'run']
 
     _suffix: str
     _entities: Dict[str, str]
@@ -141,46 +144,52 @@ class ResourceKey:
             if self._suffix != key.suffix:
                 return False
 
-            for entity, value in key.entities.items():
+            for entity, value in self._entities.items():
                 if entity == 'desc':
                     continue
 
                 if value == '^':
-                    if entity in self._entities:
+                    if entity in key._entities:
                         return False
                 else:
 
-                    if entity not in self._entities:
-                        return False
+                    if entity not in key._entities:
+                        continue
 
-                    if value != self._entities[entity]:
+                    if value == '*':
+                        continue
+
+                    if value != key._entities[entity]:
                         return False
 
             if 'desc' in key.entities:
 
                 if key.entities['desc'] == '^':
-                    if 'desc' in self._entities:
+                    if 'desc' in key._entities:
                         return False
 
-                elif 'desc' not in self._entities:
-                    return False
+                elif 'desc' not in key._entities:
+                    return True
 
                 my_strat = self.strategy
                 key_strat = key.strategy
 
                 for k, v in key_strat.items():
                     if k not in my_strat:
-                        return False
+                        continue
                     if v != my_strat[k]:
                         return False
 
-            if key.tags:
-                if not self._tags:
+            if self.tags:
+                if not key._tags:
                     return False
                 if not all(tag in self._tags for tag in key.tags):
                     return False
 
             return True
+
+        elif isinstance(key, str):
+            return key in self._entities
 
         return False
 
@@ -234,11 +243,21 @@ class ResourcePool:
         self._pool = {}
         self._pool_by_type = {}
         self._pool_by_tag = {}
+        self._pool_branches = {
+            entity: set()
+            for entity in ResourceKey.branching_entities
+        }
 
     def __contains__(self, key: ResourceKey) -> bool:
-        return key in self._pool
+        for rp_key in self._pool.keys():
+            if rp_key in key:
+                return True
+        return False
 
-    def __getitem__(self, key: Union[ResourceKey, str]) -> Resource:
+    def __getitem__(self, key: Union[ResourceKey, str, List[str]]) -> Resource:
+
+        if isinstance(key, list):
+            return self.extract(*key)
 
         if isinstance(key, ResourceKey):
             return self._pool[key]
@@ -267,6 +286,10 @@ class ResourcePool:
 
         self._pool_by_type[resource_key['suffix']][resource_key] = resource
 
+        for entity in ResourceKey.branching_entities:
+            if entity in resource_key:
+                self._pool_branches[entity].add(resource_key[entity])
+
         for flag in resource_key.tags:
             if flag not in self._pool:
                 self._pool_by_tag[flag] = {}
@@ -281,7 +304,7 @@ class ResourcePool:
             resource = ResourceKey.from_key(resource)
 
             extracted_resources[resource] = [
-                r for r in self._pool if resource in r
+                r for r in self._pool if r in resource
             ]
 
             for matching in extracted_resources[resource]:
@@ -290,8 +313,10 @@ class ResourcePool:
                         strategies[strategy] = set()
                     strategies[strategy].add(name)
 
-        strategies_keys, strategies_values_set = strategies.keys(), strategies.values()
+        branches = [sorted(list(self._pool_branches[b]) or ['*']) for b in ResourceKey.branching_entities]
+        for branch in itertools.product(*branches):
 
+        strategies_keys, strategies_values_set = strategies.keys(), strategies.values()
         for strategies_values in itertools.product(*strategies_values_set):
 
             strategy_combination = '+'.join([
@@ -304,23 +329,44 @@ class ResourcePool:
 
             for resource, extracted in extracted_resources.items():
 
-                resource_filter = ResourceKey(
-                    str(resource),
-                    desc=strategy_combination,
-                )
+                expected_branching = [b for b in ResourceKey.branching_entities if b not in resource or resource[b] != '*']
+                expected_branching_values = [sorted(list(self._pool_branches[b]) or ['*']) for b in expected_branching]
+                wildcard_branching = [b for b in ResourceKey.branching_entities if b in resource and resource[b] == '*']
 
-                strategy_extracted = [
-                    e for e in extracted if e in resource_filter
-                ]
+                for branching_values in itertools.product(*expected_branching_values):
 
-                if strategy_extracted:
-                    if len(strategy_extracted) > 1:
-                        raise ValueError
+                    resource_filter = ResourceKey(
+                        str(resource),
+                        desc=strategy_combination,
+                        **dict(zip(expected_branching, branching_values))
+                    )
 
-                    extracted_resource_pool[resource] = self[strategy_extracted[0]]
+                    strategy_extracted_resources = [
+                        e for e in extracted if e in resource_filter
+                    ]
 
-                else:
-                    break
+                    if strategy_extracted_resources:
+
+                        for strategy_extracted_resource in strategy_extracted_resources:
+
+                            branched_resource = ResourceKey(
+                                str(resource),
+                                **{
+                                    bk: bv if bv != "*" else strategy_extracted_resource[bk]
+                                    for bk, bv in zip(wildcard_branching + expected_branching, (['*'] * len(wildcard_branching)) + list(branching_values))
+                                    if bk in strategy_extracted_resource
+                                }
+                            )
+
+                            if branched_resource in extracted_resource_pool:
+                                if self[strategy_extracted_resource] != extracted_resource_pool[branched_resource]:
+                                    raise ValueError()
+                                continue
+
+                            extracted_resource_pool[branched_resource] = self[strategy_extracted_resource]
+
+                    else:
+                        break
 
             # Assert strategy has all the resources required
             if all(e in extracted_resource_pool for e in extracted_resources):
