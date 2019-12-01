@@ -306,7 +306,7 @@ def register_workflow(workflow: pe.Workflow, config, resource_pool: ResourcePool
     except MultipleInvalid as e:
         raise ValueError(f'Invalid config: {e}')
 
-    if not config['already_skullstripped'] or config['skullstrip_option'] != 'AFNI':
+    if config['already_skullstripped'] or config['skullstrip_option'] != 'AFNI':
         return
 
     skullstrip_workflow = create_workflow()
