@@ -1,9 +1,9 @@
-from typing import Union, List, Dict
 import itertools
+from types import MappingProxyType
+from typing import Union, List, Dict
 
 
 class ResourceKey:
-
     supported_entities: List[str] = ['space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
     valid_suffixes: List[str] = ['mask', 'bold', 'T1w']
@@ -225,7 +225,6 @@ class Resource:
 
 
 class ResourcePool:
-
     _pool: Dict[ResourceKey, Resource]
     _pool_by_type: Dict[str, Dict[ResourceKey, Resource]]
     _pool_by_tag: Dict[str, Dict[ResourceKey, Resource]]
@@ -243,13 +242,7 @@ class ResourcePool:
         if isinstance(key, ResourceKey):
             return self._pool[key]
 
-        if key in self._pool_by_type:
-            return self._pool_by_type[key]
-
-        if key in self._pool_by_tag:
-            return self._pool_by_tag[key]
-
-        raise KeyError(f'Key "{key}" not find in suffixes or tags')
+        raise KeyError(f'Key "{key}" not found in suffixes or tags')
 
     def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
 
@@ -271,6 +264,14 @@ class ResourcePool:
             if flag not in self._pool:
                 self._pool_by_tag[flag] = {}
             self._pool_by_tag[flag][resource_key] = resource
+
+    def group_by(self, name: str, key: str) -> MappingProxyType:
+        if name not in ['suffix', 'tag']:
+            raise ValueError(f'Name {name} does not exist! try "suffix" or "tag"')
+        resource = self._pool_by_type if name == 'suffix' else self._pool_by_tag
+        if key not in resource:
+            return MappingProxyType({})
+        return MappingProxyType(resource[key])
 
     def extract(self, *resources):
 
