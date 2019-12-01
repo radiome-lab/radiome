@@ -23,7 +23,6 @@ config_schema = Schema({
     Required('already_skullstripped'): bool,
     Required('skullstrip_option'): In(['AFNI', 'BET', 'niworkflows-ants']),
     Required('non_local_means_filtering'): bool,
-    Required('n4_correction'): bool
 })
 
 
