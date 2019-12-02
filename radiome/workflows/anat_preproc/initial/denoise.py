@@ -32,7 +32,7 @@ def register_workflow(workflow: pe.Workflow, config: dict, resource_pool: Resour
     except MultipleInvalid as e:
         raise ValueError(f'Invalid config: {e}')
 
-    if config['already_skullstripped'] and config['skullstrip_option'] == 'niworkflows-ants':
+    if not config['already_skullstripped'] and config['skullstrip_option'] == 'niworkflows-ants':
         return
 
     if not config['non_local_means_filtering']:
