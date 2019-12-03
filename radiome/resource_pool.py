@@ -1,4 +1,4 @@
-from typing import Union, List, Dict
+from typing import Union, List, Set, Dict
 import itertools
 
 
@@ -7,7 +7,7 @@ class ResourceKey:
     supported_entities: List[str] = ['sub', 'ses', 'run',
                                      'space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
-    valid_suffixes: List[str] = ['mask', 'bold', 'T1w']
+    valid_suffixes: List[str] = ['*', 'mask', 'bold', 'T1w']
 
     branching_entities: List[str] = ['sub', 'ses', 'run']
 
@@ -20,67 +20,41 @@ class ResourceKey:
                  tags: Union[List[str], None] = None,
                  **kwargs) -> None:
 
-        self._entities = {}
-        self._suffix = ''
-        self._tags = tags or []
+        entities = {}
+        suffix = ''
+        tags = tags or []
 
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
+            parsed_entities = entity_dictionary.split('_')
 
-            *entities, suffix = entity_dictionary.split('_')
+            if '-' not in parsed_entities:
+                parsed_entities, suffix = parsed_entities[:-1], parsed_entities[-1]
 
-            if '-' in suffix:
-                raise ValueError(f'Suffix not provided'
-                                 f'in "{entity_dictionary}"')
-
-            if suffix not in self.valid_suffixes:
-                raise ValueError(f'Invalid suffix "{suffix}"'
-                                 f' in "{entity_dictionary}"')
-
-            self._suffix = suffix
-
-            for entity_pair in entities:
-
-                if '-' not in entity_pair:
-                    raise ValueError(f'Invalid entity pair "{entity_pair}" '
-                                     f'in "{entity_dictionary}"')
-
+            for entity_pair in parsed_entities:
                 key, value = entity_pair.split('-', 1)
-
-                if not value:
-                    raise ValueError(f'Entity value cannot '
-                                     f'be empty: "{value}"')
-
-                if key not in self.supported_entities:
-                    raise KeyError(f'Entity "{key}" is not supported '
-                                   f'by the resource pool')
-
-                self._entities[key] = value
+                entities[key] = value
 
         # initialize from a dictionary or custom parameters
-        elif isinstance(entity_dictionary, dict):
+        elif isinstance(entity_dictionary, (dict, ResourceKey)):
 
-            # ensure immutability
-            entity_dictionary = {
-                str(k): str(v)
-                for k, v in entity_dictionary.items()
-            }
+            if isinstance(entity_dictionary, ResourceKey):
+                suffix = entity_dictionary.suffix
+                tags = [t for t in entity_dictionary.tags] + tags
+                entities = {
+                    str(k): str(v)
+                    for k, v in entity_dictionary._entities.items()
+                }
 
-            suffix = entity_dictionary.get('suffix', '')
-            if suffix not in self.valid_suffixes:
-                raise ValueError(f'Invalid suffix "{suffix}"'
-                                 f' in "{entity_dictionary}"')
-            self._suffix = suffix
+            else:
+                entities = {
+                    str(k): str(v)
+                    for k, v in entity_dictionary.items()
+                }
 
-            for key, value in entity_dictionary.items():
-                if key == 'suffix':
-                    continue
-
-                if key not in self.supported_entities:
-                    raise KeyError(f'Entity {key} is not supported '
-                                   f'by the resource pool')
-
-                self._entities[key] = value
+                if 'suffix' in entities:
+                    suffix = entities['suffix']
+                    del entities['suffix']
 
         elif not kwargs:
             raise ValueError(f'Provided entity_dictionary must be '
@@ -88,21 +62,39 @@ class ResourceKey:
                              f'{type(entity_dictionary)}')
 
         if kwargs:
-            suffix = kwargs.get('suffix', self._suffix)
-            if suffix not in self.valid_suffixes:
-                raise ValueError(f'Invalid suffix "{suffix}" in '
-                                 f'"{entity_dictionary}"')
-            self._suffix = suffix
+            suffix = kwargs.get('suffix', suffix)
 
             for key, value in kwargs.items():
                 if key == 'suffix':
                     continue
 
-                if key not in self.supported_entities:
-                    raise KeyError(f'Entity {key} is not supported '
-                                   f'by the resource pool')
+                if value is None:
+                    if key in entities:
+                        del entities[key]
+                else:
+                    entities[key] = str(value)
 
-                self._entities[key] = value
+        self._suffix = ''
+        self._entities = {}
+        self._tags = []
+
+        if suffix not in self.valid_suffixes:
+            raise ValueError(f'Invalid suffix "{suffix}"')
+
+        self._suffix = suffix
+            
+        for key, value in entities.items():
+            if key not in self.supported_entities:
+                raise KeyError(f'Entity {key} is not supported by '
+                               f'the resource pool')
+                
+            if not value:
+                    raise ValueError(f'Entity value cannot '
+                                     f'be empty: "{value}"')
+
+            self._entities[key] = value
+
+        self._tags = [t for t in tags]
 
     def __repr__(self):
         return str(self)
@@ -141,7 +133,7 @@ class ResourceKey:
 
         if isinstance(key, ResourceKey):
 
-            if self._suffix != key.suffix:
+            if self._suffix != '*' and self._suffix != key.suffix:
                 return False
 
             for entity, value in self._entities.items():
@@ -238,12 +230,18 @@ class ResourcePool:
     _pool: Dict[ResourceKey, Resource]
     _pool_by_type: Dict[str, Dict[ResourceKey, Resource]]
     _pool_by_tag: Dict[str, Dict[ResourceKey, Resource]]
+    _pool_branches: Dict[str, Set[str]]
+    _pool_branched_resources: Dict[str, Set[ResourceKey]]
 
     def __init__(self):
         self._pool = {}
         self._pool_by_type = {}
         self._pool_by_tag = {}
         self._pool_branches = {
+            entity: set()
+            for entity in ResourceKey.branching_entities
+        }
+        self._pool_branched_resources = {
             entity: set()
             for entity in ResourceKey.branching_entities
         }
@@ -286,9 +284,15 @@ class ResourcePool:
 
         self._pool_by_type[resource_key['suffix']][resource_key] = resource
 
+        cleaner = {en: None for en in ResourceKey.branching_entities}
+        clean_resource_key = ResourceKey(
+            resource_key,
+            **cleaner
+        )
         for entity in ResourceKey.branching_entities:
             if entity in resource_key:
                 self._pool_branches[entity].add(resource_key[entity])
+                self._pool_branched_resources[entity].add(clean_resource_key)
 
         for flag in resource_key.tags:
             if flag not in self._pool:
@@ -300,9 +304,9 @@ class ResourcePool:
         extracted_resources = {}
         strategies = {}
 
-        for resource in resources:
-            resource = ResourceKey.from_key(resource)
+        resources = [ResourceKey(r) for r in resources]
 
+        for resource in resources:
             extracted_resources[resource] = [
                 r for r in self._pool if r in resource
             ]
@@ -313,11 +317,43 @@ class ResourcePool:
                         strategies[strategy] = set()
                     strategies[strategy].add(name)
 
-        branches = [sorted(list(self._pool_branches[b]) or ['*']) for b in ResourceKey.branching_entities]
-        for branch in itertools.product(*branches):
+        # Branching 
+        expected_branching_keys = [
+            b for b in self._pool_branches
+            if
+                # there is branching in this entity
+                self._pool_branches[b] and
 
-        strategies_keys, strategies_values_set = strategies.keys(), strategies.values()
-        for strategies_values in itertools.product(*strategies_values_set):
+                # all resource selectors for this entity are not wildcards
+                all(                        
+                    b not in resource or resource[b] != '*'
+                    for resource in resources
+                ) and
+
+                # there is at least one selected resource that uses this branch
+                any(                        
+                    any(resource in b for b in self._pool_branched_resources[b])
+                    for resource in resources
+                )
+        ]
+        expected_branching_values_set = [
+            self._pool_branches[b] for b in expected_branching_keys
+        ]
+        
+        strategies_keys, strategies_values_set = list(strategies.keys()), list(strategies.values())
+
+        for grouping_values in itertools.product(*expected_branching_values_set, *strategies_values_set):
+
+            branching_values = grouping_values[:len(expected_branching_keys)]
+            strategies_values = grouping_values[len(expected_branching_keys):]
+
+            expected_branching = dict(zip(expected_branching_keys, branching_values))
+
+            branching_combination = '_'.join([
+                f'{b}-{expected_branching[b]}'
+                for b in ResourceKey.branching_entities
+                if b in expected_branching
+            ])
 
             strategy_combination = '+'.join([
                 '-'.join([k, v])
@@ -325,49 +361,54 @@ class ResourcePool:
                 in zip(strategies_keys, strategies_values)
             ])
 
+            combination = '_'.join(filter(None, [
+                branching_combination, strategy_combination
+            ]))
+
             extracted_resource_pool = ResourcePool()
 
             for resource, extracted in extracted_resources.items():
 
-                expected_branching = [b for b in ResourceKey.branching_entities if b not in resource or resource[b] != '*']
-                expected_branching_values = [sorted(list(self._pool_branches[b]) or ['*']) for b in expected_branching]
-                wildcard_branching = [b for b in ResourceKey.branching_entities if b in resource and resource[b] == '*']
+                expected_resource_unbranching = {
+                    b: '*' for b in ResourceKey.branching_entities
+                    if b in resource and resource[b] == '*'
+                }
 
-                for branching_values in itertools.product(*expected_branching_values):
+                resource_filter = ResourceKey(
+                    resource,
+                    desc=strategy_combination,
+                    **expected_branching,
+                    **expected_resource_unbranching
+                )
 
-                    resource_filter = ResourceKey(
-                        str(resource),
-                        desc=strategy_combination,
-                        **dict(zip(expected_branching, branching_values))
-                    )
+                strategy_extracted_resources = [
+                    e for e in extracted if e in resource_filter
+                ]
 
-                    strategy_extracted_resources = [
-                        e for e in extracted if e in resource_filter
-                    ]
+                if strategy_extracted_resources:
 
-                    if strategy_extracted_resources:
+                    for strategy_extracted_resource in strategy_extracted_resources:
 
-                        for strategy_extracted_resource in strategy_extracted_resources:
+                        # replace wildcard with the actual value of branching
+                        branched_resource = ResourceKey(
+                            resource,
+                            **{
+                                bk: bv if bv != "*" else strategy_extracted_resource[bk]
+                                for bk, bv in {**expected_resource_unbranching, **expected_branching}.items()
+                                if bk in strategy_extracted_resource
+                            }
+                        )
 
-                            branched_resource = ResourceKey(
-                                str(resource),
-                                **{
-                                    bk: bv if bv != "*" else strategy_extracted_resource[bk]
-                                    for bk, bv in zip(wildcard_branching + expected_branching, (['*'] * len(wildcard_branching)) + list(branching_values))
-                                    if bk in strategy_extracted_resource
-                                }
-                            )
+                        if branched_resource in extracted_resource_pool:
+                            if self[strategy_extracted_resource] != extracted_resource_pool[branched_resource]:
+                                raise ValueError()
+                            continue
 
-                            if branched_resource in extracted_resource_pool:
-                                if self[strategy_extracted_resource] != extracted_resource_pool[branched_resource]:
-                                    raise ValueError()
-                                continue
+                        extracted_resource_pool[branched_resource] = self[strategy_extracted_resource]
 
-                            extracted_resource_pool[branched_resource] = self[strategy_extracted_resource]
-
-                    else:
-                        break
+                else:
+                    break
 
             # Assert strategy has all the resources required
             if all(e in extracted_resource_pool for e in extracted_resources):
-                yield strategy_combination, extracted_resource_pool
+                yield ResourceKey(combination, suffix='*'), extracted_resource_pool
