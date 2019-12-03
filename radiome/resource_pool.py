@@ -13,16 +13,16 @@ class ResourceKey:
 
     _suffix: str
     _entities: Dict[str, str]
-    _tags: List[str]
+    _tags: Set[str]
 
     def __init__(self,
                  entity_dictionary: Union[str, Dict[str, str], None] = None,
-                 tags: Union[List[str], None] = None,
+                 tags: Union[Set[str], None] = None,
                  **kwargs) -> None:
 
         entities = {}
         suffix = ''
-        tags = tags or []
+        tags = tags or set()
 
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
@@ -40,7 +40,7 @@ class ResourceKey:
 
             if isinstance(entity_dictionary, ResourceKey):
                 suffix = entity_dictionary.suffix
-                tags = [t for t in entity_dictionary.tags] + tags
+                tags |= entity_dictionary.tags
                 entities = {
                     str(k): str(v)
                     for k, v in entity_dictionary._entities.items()
@@ -74,15 +74,12 @@ class ResourceKey:
                 else:
                     entities[key] = str(value)
 
-        self._suffix = ''
-        self._entities = {}
-        self._tags = []
-
         if suffix not in self.valid_suffixes:
             raise ValueError(f'Invalid suffix "{suffix}"')
 
         self._suffix = suffix
-            
+
+        self._entities = {}
         for key, value in entities.items():
             if key not in self.supported_entities:
                 raise KeyError(f'Entity {key} is not supported by '
@@ -94,7 +91,7 @@ class ResourceKey:
 
             self._entities[key] = value
 
-        self._tags = [t for t in tags]
+        self._tags = set([str(t) for t in tags])
 
     def __repr__(self):
         return str(self)
