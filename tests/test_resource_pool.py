@@ -12,10 +12,12 @@ class TestResourcePool(TestCase):
         slot = 'output_file'
         tags = ['write_to_mni', 'smooth_before', 'write_at_4mm', 'qc_carpet']
 
-        resource_key = ResourceKey('atlas-aal_roi-112_desc-afni_mask', tags=tags)
+        resource_key = ResourceKey('atlas-aal_roi-112_desc-skullstripping-afni_mask', tags=tags)
         resource = Resource(workflow, slot)
 
         rp[resource_key] = resource
+
+        _, extracted_rp = next(rp[[ResourceKey('atlas-*_mask', tags=['write_to_mni'])]])
 
         self.assertEqual(rp[resource_key], resource)
         self.assertEqual(rp['write_to_mni'][resource_key], resource)
@@ -51,34 +53,33 @@ class TestResourcePool(TestCase):
         self.assertEqual(len(extraction), 4)
 
         self.assertEqual(
-            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-orig_T1w')],
+            extraction[ResourceKey(desc='skullstrip-bet+nuis-gsr')][ResourceKey('space-orig_T1w')],
             rp[ResourceKey('space-orig_T1w')]
         )
 
         self.assertEqual(
-            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-orig_bold')],
+            extraction[ResourceKey(desc='skullstrip-bet+nuis-gsr')][ResourceKey('space-orig_bold')],
             rp[ResourceKey('space-orig_desc-skullstrip-bet+nuis-gsr_bold')]
         )
 
         self.assertEqual(
-            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-orig_bold')],
+            extraction[ResourceKey(desc='skullstrip-bet+nuis-gsr')][ResourceKey('space-orig_bold')],
             rp[ResourceKey('space-orig_desc-skullstrip-bet+nuis-gsr_bold')]
         )
 
         self.assertEqual(
-            extraction['skullstrip-bet+nuis-gsr'][ResourceKey('space-orig_bold')],
+            extraction[ResourceKey(desc='skullstrip-bet+nuis-gsr')][ResourceKey('space-orig_bold')],
             rp[ResourceKey('space-orig_desc-skullstrip-bet+nuis-gsr_bold')]
         )
 
         self.assertEqual(
-            extraction['skullstrip-bet+nuis-nogsr'][ResourceKey('space-MNI_mask')],
+            extraction[ResourceKey(desc='skullstrip-bet+nuis-nogsr')][ResourceKey('space-MNI_mask')],
             rp[ResourceKey('space-MNI_desc-nuis-nogsr_mask')]
         )
 
     def test_resource_pool_extraction_subsesrun(self):
 
         workflow = object()
-        slot = 'output_file'
 
         rp = ResourcePool()
 
@@ -102,6 +103,13 @@ class TestResourcePool(TestCase):
         extraction = list(rp[[
             'space-orig_T1w',
             'space-orig_mask',
+        ]])
+
+        self.assertEqual(len(extraction), 2 * subs * sess)
+
+        extraction = list(rp[[
+            'space-orig_T1w',
+            'space-orig_mask',
             'space-orig_bold',
         ]])
 
@@ -111,10 +119,10 @@ class TestResourcePool(TestCase):
 
         key_dict = {'atlas': 'aal',
                     'roi': '112',
-                    'desc': 'afni',
+                    'desc': 'skullstripping-afni',
                     'suffix': 'mask'}
 
-        key_string = 'atlas-aal_roi-112_desc-afni_mask'
+        key_string = 'atlas-aal_roi-112_desc-skullstripping-afni_mask'
 
         value = 'now is the time for all good men to come to the aid of their country'
 
@@ -150,12 +158,15 @@ class TestResourcePool(TestCase):
 
         self.assertTrue(
             ResourceKey('sub-000_ses-000_run-000_space-orig_T1w') in
-            ResourceKey('space-orig_desc-skullstrip-bet+nuis-nogsr_T1w')
+            ResourceKey('space-orig_desc-skullstripping-bet+nuis-nogsr_T1w')
         )
+
+        self.assertEqual(ResourceKey(new_key_from_string, atlas='mni').entities['atlas'], 'mni')
 
 
     def test_invalid_resource_key(self):
-        # case 1: invalid entity
+
+        # Case: invalid entity
         invalid_key_dict = {
             'atlas': 'aal',
             'roi': '112',
@@ -174,32 +185,7 @@ class TestResourcePool(TestCase):
         with self.assertRaises(KeyError):
             ResourceKey(**invalid_key_dict)
 
-        # case 2: no suffix
-        key_dict_without_suffix = {
-            'atlas': 'aal',
-            'roi': '112',
-            'desc': 'afni'
-        }
-
-        key_string_without_suffix = 'atlas-aal_roi-112_desc-afni'
-
-        with self.assertRaises(ValueError):
-            ResourceKey(key_string_without_suffix)
-
-        with self.assertRaises(ValueError):
-            ResourceKey(key_dict_without_suffix)
-
-        with self.assertRaises(ValueError):
-            ResourceKey(**key_dict_without_suffix)
-
-        # case 3: Wrong input type
-        with self.assertRaises(ValueError):
-            ResourceKey([])
-
-        with self.assertRaises(ValueError):
-            ResourceKey(bool)
-
-        # case 4: String in invalid format
+        # Case: String in invalid format
         # key_string_invalid_form1 = 'atlas-aal-112_desc-afni_mask'
         key_string_invalid_form2 = 'atlas_desc-afni_mask'
         key_string_invalid_form3 = 'mask_atlas'

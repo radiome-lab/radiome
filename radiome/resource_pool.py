@@ -21,7 +21,7 @@ class ResourceKey:
                  **kwargs) -> None:
 
         entities = {}
-        suffix = ''
+        suffix = '*'
         tags = tags or set()
 
         # initialize dictionary from a key
@@ -56,11 +56,6 @@ class ResourceKey:
                     suffix = entities['suffix']
                     del entities['suffix']
 
-        elif not kwargs:
-            raise ValueError(f'Provided entity_dictionary must be '
-                             f'a string or dictionary, not a '
-                             f'{type(entity_dictionary)}')
-
         if kwargs:
             suffix = kwargs.get('suffix', suffix)
 
@@ -91,7 +86,7 @@ class ResourceKey:
 
             self._entities[key] = value
 
-        self._tags = set([str(t) for t in tags])
+        self._tags = {str(t) for t in tags}
 
     def __repr__(self):
         return str(self)
@@ -151,7 +146,7 @@ class ResourceKey:
                     if value != key._entities[entity]:
                         return False
 
-            if 'desc' in key.entities:
+            if 'desc' in key.entities and 'desc' in self._entities:
 
                 if key.entities['desc'] == '^':
                     if 'desc' in key._entities:
@@ -172,7 +167,7 @@ class ResourceKey:
             if self.tags:
                 if not key._tags:
                     return False
-                if not all(tag in self._tags for tag in key.tags):
+                if not all(tag in key.tags for tag in self._tags):
                     return False
 
             return True
@@ -188,7 +183,7 @@ class ResourceKey:
 
     @property
     def tags(self):
-        return [t for t in self._tags]
+        return {t for t in self._tags}
 
     @property
     def strategy(self):
@@ -213,6 +208,15 @@ class ResourceKey:
             return key
 
         return ResourceKey(key)
+
+    def isfilter(self):
+        return \
+            len(self._entities) == 0 or \
+            any(
+                v == '*'
+                for v in self._entities.values()
+            ) or \
+            self._suffix == '*'
 
 
 class Resource:
@@ -249,7 +253,7 @@ class ResourcePool:
                 return True
         return False
 
-    def __getitem__(self, key: Union[ResourceKey, str, List[str]]) -> Resource:
+    def __getitem__(self, key: Union[ResourceKey, str, List[str]]) -> Union[Resource, Dict]:
 
         if isinstance(key, list):
             return self.extract(*key)
@@ -269,6 +273,9 @@ class ResourcePool:
 
         if not isinstance(resource_key, ResourceKey):
             resource_key = ResourceKey(str(resource_key))
+
+        if resource_key.isfilter():
+            raise KeyError(f'Resource key cannot be a filter: {resource_key}')
 
         self._pool[resource_key] = resource
 
@@ -346,21 +353,11 @@ class ResourcePool:
 
             expected_branching = dict(zip(expected_branching_keys, branching_values))
 
-            branching_combination = '_'.join([
-                f'{b}-{expected_branching[b]}'
-                for b in ResourceKey.branching_entities
-                if b in expected_branching
-            ])
-
             strategy_combination = '+'.join([
                 '-'.join([k, v])
                 for k, v
                 in zip(strategies_keys, strategies_values)
             ])
-
-            combination = '_'.join(filter(None, [
-                branching_combination, strategy_combination
-            ]))
 
             extracted_resource_pool = ResourcePool()
 
@@ -373,7 +370,7 @@ class ResourcePool:
 
                 resource_filter = ResourceKey(
                     resource,
-                    desc=strategy_combination,
+                    desc=strategy_combination or None,
                     **expected_branching,
                     **expected_resource_unbranching
                 )
@@ -389,10 +386,16 @@ class ResourcePool:
                         # replace wildcard with the actual value of branching
                         branched_resource = ResourceKey(
                             resource,
+                            suffix=strategy_extracted_resource.suffix,
                             **{
                                 bk: bv if bv != "*" else strategy_extracted_resource[bk]
                                 for bk, bv in {**expected_resource_unbranching, **expected_branching}.items()
                                 if bk in strategy_extracted_resource
+                            },
+                            **{
+                                k: v
+                                for k, v in strategy_extracted_resource.entities.items()
+                                if k in resource
                             }
                         )
 
@@ -408,4 +411,8 @@ class ResourcePool:
 
             # Assert strategy has all the resources required
             if all(e in extracted_resource_pool for e in extracted_resources):
-                yield ResourceKey(combination, suffix='*'), extracted_resource_pool
+                yield ResourceKey(
+                    desc=strategy_combination,
+                    **expected_branching,
+                    suffix='*'
+                ), extracted_resource_pool
