@@ -1,5 +1,65 @@
-from typing import Union, List, Set, Dict
+from typing import Union, List, Set, Dict, OrderedDict
 import itertools
+import re
+
+
+class Strategy:
+
+    __forks: OrderedDict[str, str]
+
+    def __init__(self,
+                 forks,
+                 **kwargs):
+
+
+        if isinstance(forks, str):
+            if not re.match(r'[^-+]+-[^+]+(\+[^-+]+-[^+]+)*', forks):
+                raise ValueError(f'Forks should be in the format "strat-value" '
+                                 f'separated by +, provided: "{forks}"')
+            forks = [
+                (k, v)
+                for k, v in [
+                    strat.split('-', 1)
+                    for strat in forks.split('+')
+                ]
+            ]
+        else:
+            forks += [
+                (str(k), str(v))
+                for k, v in forks.items()
+            ]
+
+        forks += [
+            (str(k), str(v))
+            for k, v in kwargs.items()
+        ]
+
+        self.__forks = OrderedDict([
+            (str(k), str(v))
+            for k, v in forks
+        ])
+
+    @property
+    def forks(self):
+        return OrderedDict([
+            (k, v)
+            for k, v in self.__forks.items()
+        ])
+
+    def __repr__(self):
+        return str(self)
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __str__(self):
+        return '-'.join([
+            f'{k}-{v}'
+            for k, v in self.__forks.items()
+        ])
 
 
 class ResourceKey:
@@ -12,6 +72,7 @@ class ResourceKey:
     branching_entities: List[str] = ['sub', 'ses', 'run']
 
     __suffix: str
+    __strategy: Strategy
     __entities: Dict[str, str]
     __tags: Set[str]
 
@@ -73,13 +134,20 @@ class ResourceKey:
             raise ValueError(f'Invalid suffix "{suffix}"')
 
         self.__suffix = suffix
-
         self.__entities = {}
+
+        self.__strategy = None
+        if 'desc' in entities:
+            try:
+                self.__strategy = Strategy(entities['desc'])
+            except ValueError:
+                pass
+
         for key, value in entities.items():
             if key not in self.supported_entities:
                 raise KeyError(f'Entity {key} is not supported by '
                                f'the resource pool')
-                
+
             if not value:
                     raise ValueError(f'Entity value cannot '
                                      f'be empty: "{value}"')
@@ -95,22 +163,25 @@ class ResourceKey:
         return hash(self.__str__())
 
     def __str__(self):
-        return '_'.join(
+        return '_'.join(filter(None,
             [
                 '-'.join([entity, self.__entities[entity]])
                 for entity in self.supported_entities
-                if entity in self.__entities
+                if entity in self.__entities and entity != 'desc'
             ]
             +
-            [
-                self.__suffix
-            ]
-        )
+            ([str(self.__strategy)] if self.__strategy else [])
+            +
+            [self.__suffix]
+        ))
 
     def __getitem__(self, item):
 
         if item == 'suffix':
             return self.__suffix
+
+        if item == 'desc':
+            return self.__strategy
 
         if item not in self.supported_entities:
             raise KeyError(f'Entity {item} is not supported '
@@ -187,20 +258,17 @@ class ResourceKey:
 
     @property
     def strategy(self):
-        if not self.__entities.get('desc'):
+        if not self.__strategy:
             return {}
 
-        return {
-            k: v
-            for k, v in [
-                strat.split('-', 1)
-                for strat in self.__entities.get('desc', '').split('+')
-            ]
-        }
+        return self.__strategy.forks
 
     @property
     def entities(self):
-        return {k: v for k, v in self.__entities.items()}
+        return {
+            k: v
+            for k, v in self.__entities.items()
+        }
 
     @staticmethod
     def from_key(key):
@@ -321,7 +389,7 @@ class ResourcePool:
                         strategies[strategy] = set()
                     strategies[strategy].add(name)
 
-        # Branching 
+        # Branching
         expected_branching_keys = [
             b for b in self.__pool_branches
             if
@@ -329,13 +397,13 @@ class ResourcePool:
                 self.__pool_branches[b] and
 
                 # all resource selectors for this entity are not wildcards
-                all(                        
+                all(
                     b not in resource or resource[b] != '*'
                     for resource in resources
                 ) and
 
                 # there is at least one selected resource that uses this branch
-                any(                        
+                any(
                     any(resource in b for b in self.__pool_branched_resources[b])
                     for resource in resources
                 )
@@ -343,7 +411,7 @@ class ResourcePool:
         expected_branching_values_set = [
             self.__pool_branches[b] for b in expected_branching_keys
         ]
-        
+
         strategies_keys, strategies_values_set = list(strategies.keys()), list(strategies.values())
 
         for grouping_values in itertools.product(*expected_branching_values_set, *strategies_values_set):

@@ -170,11 +170,11 @@ class TestResourcePool(TestCase):
         invalid_key_dict = {
             'atlas': 'aal',
             'roi': '112',
-            'desc': 'afni',
+            'desc': 'skullstripping-afni',
             'something': 'emmm',
             'suffix': 'mask'
         }
-        invalid_key_string = 'atlas-aal_roi-112_desc-afni_something_emmm_mask'
+        invalid_key_string = 'atlas-aal_roi-112_desc-skullstripping-afni_something_emmm_mask'
 
         with self.assertRaises(ValueError):
             ResourceKey(invalid_key_string)
