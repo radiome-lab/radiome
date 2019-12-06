@@ -1,16 +1,16 @@
-from typing import Union, List, Set, Dict, OrderedDict
+from typing import Union, List, Set, Dict, OrderedDict as OrderedDictType
+from collections import OrderedDict
 import itertools
 import re
 
 
 class Strategy:
 
-    __forks: OrderedDict[str, str]
+    __forks: OrderedDictType[str, str]
 
     def __init__(self,
                  forks,
                  **kwargs):
-
 
         if isinstance(forks, str):
             if not re.match(r'[^-+]+-[^+]+(\+[^-+]+-[^+]+)*', forks):
