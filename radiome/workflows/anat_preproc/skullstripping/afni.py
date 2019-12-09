@@ -3,7 +3,7 @@ import nipype.pipeline.engine as pe
 from nipype.interfaces import afni
 from voluptuous import Schema, In, MultipleInvalid
 
-from radiome.resource_pool import ResourcePool, Resource
+from radiome.resource_pool import ResourcePool, Resource, ResourceKey, Strategy
 
 
 # TODO inconsistent type from workflow input
@@ -157,123 +157,6 @@ def create_3d_skullstrip_arg_string(shrink_fac: float, var_shrink_fac: bool,
     return expr
 
 
-def create_workflow() -> pe.Workflow:
-    workflow = pe.Workflow(name='skullstrip_afni')
-
-    input_node = pe.Node(util.IdentityInterface(fields=['in_file']), name='input_spec')
-    output_node = pe.Node(util.IdentityInterface(fields=['out_file', 'brain_mask', 'brain']), name='output_spec')
-
-    afni_input = pe.Node(util.IdentityInterface(fields=['shrink_factor',
-                                                        'var_shrink_fac',
-                                                        'shrink_fac_bot_lim',
-                                                        'avoid_vent',
-                                                        'niter',
-                                                        'pushout',
-                                                        'touchup',
-                                                        'fill_hole',
-                                                        'avoid_eyes',
-                                                        'use_edge',
-                                                        'exp_frac',
-                                                        'smooth_final',
-                                                        'push_to_edge',
-                                                        'use_skull',
-                                                        'perc_int',
-                                                        'max_inter_iter',
-                                                        'blur_fwhm',
-                                                        'fac',
-                                                        'monkey']),
-                         name='AFNI_options')
-
-    skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
-                                                         'spat_norm_dxyz',
-                                                         'shrink_fac',
-                                                         'var_shrink_fac',
-                                                         'shrink_fac_bot_lim',
-                                                         'avoid_vent',
-                                                         'niter',
-                                                         'pushout',
-                                                         'touchup',
-                                                         'fill_hole',
-                                                         'avoid_eyes',
-                                                         'use_edge',
-                                                         'exp_frac',
-                                                         'smooth_final',
-                                                         'push_to_edge',
-                                                         'use_skull',
-                                                         'perc_int',
-                                                         'max_inter_iter',
-                                                         'blur_fwhm',
-                                                         'fac',
-                                                         'monkey'],
-                                            output_names=['expr'],
-                                            function=create_3d_skullstrip_arg_string),
-                              name='anat_skullstrip_args')
-
-    workflow.connect([
-        (afni_input, skullstrip_args, [
-            ('shrink_factor', 'shrink_fac'),
-            ('var_shrink_fac', 'var_shrink_fac'),
-            ('shrink_fac_bot_lim', 'shrink_fac_bot_lim'),
-            ('avoid_vent', 'avoid_vent'),
-            ('niter', 'niter'),
-            ('pushout', 'pushout'),
-            ('touchup', 'touchup'),
-            ('fill_hole', 'fill_hole'),
-            ('avoid_eyes', 'avoid_eyes'),
-            ('use_edge', 'use_edge'),
-            ('exp_frac', 'exp_frac'),
-            ('smooth_final', 'smooth_final'),
-            ('push_to_edge', 'push_to_edge'),
-            ('use_skull', 'use_skull'),
-            ('perc_int', 'perc_int'),
-            ('max_inter_iter', 'max_inter_iter'),
-            ('blur_fwhm', 'blur_fwhm'),
-            ('fac', 'fac'),
-            ('monkey', 'monkey')
-        ])
-    ])
-
-    anat_skullstrip = pe.Node(interface=afni.SkullStrip(),
-                              name='anat_skullstrip')
-
-    anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
-
-    workflow.connect(input_node, 'in_file',
-                     anat_skullstrip, 'in_file')
-    workflow.connect(skullstrip_args, 'expr',
-                     anat_skullstrip, 'args')
-    workflow.connect(anat_skullstrip, 'out_file',
-                     output_node, 'out_file')
-
-    # Apply skull-stripping step mask to original volume
-    anat_skullstrip_orig_vol = pe.Node(interface=afni.Calc(),
-                                       name='anat_skullstrip_orig_vol')
-
-    anat_skullstrip_orig_vol.inputs.expr = 'a*step(b)'
-    anat_skullstrip_orig_vol.inputs.outputtype = 'NIFTI_GZ'
-    workflow.connect(input_node, 'in_file',
-                     anat_skullstrip_orig_vol, 'in_file_a')
-
-    anat_brain_mask = pe.Node(interface=afni.Calc(),
-                              name='anat_brain_mask')
-    anat_brain_mask.inputs.expr = 'step(a)'
-    anat_brain_mask.inputs.outputtype = 'NIFTI_GZ'
-
-    workflow.connect(anat_skullstrip, 'out_file',
-                     anat_brain_mask, 'in_file_a')
-
-    workflow.connect(anat_skullstrip, 'out_file',
-                     anat_skullstrip_orig_vol, 'in_file_b')
-
-    workflow.connect(anat_brain_mask, 'out_file',
-                     output_node, 'brain_mask')
-
-    workflow.connect(anat_skullstrip_orig_vol, 'out_file',
-                     output_node, 'brain')
-
-    return workflow
-
-
 config_schema = Schema({
     'already_skullstripped': bool,
     'skullstrip_option': In(['AFNI', 'BET', 'niworkflows-ants']),
@@ -299,7 +182,6 @@ config_schema = Schema({
 })
 
 
-# TODO type and schema validation of yaml configuration
 def register_workflow(workflow: pe.Workflow, config, resource_pool: ResourcePool):
     try:
         config_schema(config)
@@ -310,38 +192,104 @@ def register_workflow(workflow: pe.Workflow, config, resource_pool: ResourcePool
     if config['already_skullstripped'] or config['skullstrip_option'] != 'AFNI':
         return
 
-    skullstrip_workflow = create_workflow()
-    skullstrip_workflow.inputs.AFNI_options.set(
-        shrink_factor=config.skullstrip_shrink_factor,
-        var_shrink_fac=config.skullstrip_var_shrink_fac,
-        shrink_fac_bot_lim=config.skullstrip_shrink_factor_bot_lim,
-        avoid_vent=config.skullstrip_avoid_vent,
-        niter=config.skullstrip_n_iterations,
-        pushout=config.skullstrip_pushout,
-        touchup=config.skullstrip_touchup,
-        fill_hole=config.skullstrip_fill_hole,
-        avoid_eyes=config.skullstrip_avoid_eyes,
-        use_edge=config.skullstrip_use_edge,
-        exp_frac=config.skullstrip_exp_frac,
-        smooth_final=config.skullstrip_smooth_final,
-        push_to_edge=config.skullstrip_push_to_edge,
-        use_skull=config.skullstrip_use_skull,
-        perc_int=config.skullstrip_perc_int,
-        max_inter_iter=config.skullstrip_max_inter_iter,
-        blur_fwhm=config.skullstrip_blur_fwhm,
-        fac=config.skullstrip_fac,
-        monkey=config.skullstrip_monkey,
-    )
+    anat_resources = resource_pool['reorient']
+    generated_resources = {}
 
-    resource_map = resource_pool.group_by(name='tag', key='anatomical')
-    for resource_key, resource in resource_map.items():
-        updated_resource_key = resource_key.with_strategy(skullstrip='afni')
-        node = resource.workflow_node
+    for resource_key, resource in anat_resources.items():
+        workflow_node = resource.workflow_node
         slot = resource.slot
 
-        workflow.connect(node, slot, skullstrip_workflow, 'input_spec.in_file')
-        resource_pool[updated_resource_key.with_tag('brain_mask')] = Resource(skullstrip_workflow,
-                                                                              'output_spec.brain_mask')
-        resource_pool[updated_resource_key.with_tag('brain')] = Resource(skullstrip_workflow,
-                                                                         'output_spec.brain')
-        resource_pool[updated_resource_key] = Resource(skullstrip_workflow, 'output_spec.out_file')
+        afni_input = pe.Node(util.IdentityInterface(fields=['shrink_factor',
+                                                            'var_shrink_fac',
+                                                            'shrink_fac_bot_lim',
+                                                            'avoid_vent',
+                                                            'niter',
+                                                            'pushout',
+                                                            'touchup',
+                                                            'fill_hole',
+                                                            'avoid_eyes',
+                                                            'use_edge',
+                                                            'exp_frac',
+                                                            'smooth_final',
+                                                            'push_to_edge',
+                                                            'use_skull',
+                                                            'perc_int',
+                                                            'max_inter_iter',
+                                                            'blur_fwhm',
+                                                            'fac',
+                                                            'monkey']),
+                             name='AFNI_options')
+
+        skullstrip_args = pe.Node(util.Function(input_names=['spat_norm',
+                                                             'spat_norm_dxyz',
+                                                             'shrink_fac',
+                                                             'var_shrink_fac',
+                                                             'shrink_fac_bot_lim',
+                                                             'avoid_vent',
+                                                             'niter',
+                                                             'pushout',
+                                                             'touchup',
+                                                             'fill_hole',
+                                                             'avoid_eyes',
+                                                             'use_edge',
+                                                             'exp_frac',
+                                                             'smooth_final',
+                                                             'push_to_edge',
+                                                             'use_skull',
+                                                             'perc_int',
+                                                             'max_inter_iter',
+                                                             'blur_fwhm',
+                                                             'fac',
+                                                             'monkey'],
+                                                output_names=['expr'],
+                                                function=create_3d_skullstrip_arg_string),
+                                  name='anat_skullstrip_args')
+
+        workflow.connect([
+            (afni_input, skullstrip_args, [
+                ('shrink_factor', 'shrink_fac'),
+                ('var_shrink_fac', 'var_shrink_fac'),
+                ('shrink_fac_bot_lim', 'shrink_fac_bot_lim'),
+                ('avoid_vent', 'avoid_vent'),
+                ('niter', 'niter'),
+                ('pushout', 'pushout'),
+                ('touchup', 'touchup'),
+                ('fill_hole', 'fill_hole'),
+                ('avoid_eyes', 'avoid_eyes'),
+                ('use_edge', 'use_edge'),
+                ('exp_frac', 'exp_frac'),
+                ('smooth_final', 'smooth_final'),
+                ('push_to_edge', 'push_to_edge'),
+                ('use_skull', 'use_skull'),
+                ('perc_int', 'perc_int'),
+                ('max_inter_iter', 'max_inter_iter'),
+                ('blur_fwhm', 'blur_fwhm'),
+                ('fac', 'fac'),
+                ('monkey', 'monkey')
+            ])
+        ])
+
+        anat_skullstrip = pe.Node(interface=afni.SkullStrip(), name='anat_skullstrip')
+        anat_skullstrip.inputs.outputtype = 'NIFTI_GZ'
+        workflow.connect(workflow_node, slot,
+                         anat_skullstrip, 'in_file')
+        workflow.connect(skullstrip_args, 'expr',
+                         anat_skullstrip, 'args')
+        generated_resources[
+            ResourceKey(str(resource_key), desc=Strategy(resource_key.strategy, skullstrip='afni'))] = Resource(
+            anat_skullstrip, 'out_file')
+
+        # Apply skull-stripping step mask to original volume
+        anat_brain_mask = pe.Node(interface=afni.Calc(),
+                                  name='anat_brain_mask')
+        anat_brain_mask.inputs.expr = 'step(a)'
+        anat_brain_mask.inputs.outputtype = 'NIFTI_GZ'
+        workflow.connect(anat_skullstrip, 'out_file',
+                         anat_brain_mask, 'in_file_a')
+        generated_resources[
+            ResourceKey(str(resource_key),
+                        desc=Strategy(resource_key.strategy, skullstrip='afni', suffix='mask'))] = Resource(
+            anat_brain_mask, 'out_file')
+
+    for resource_key, resource in generated_resources:
+        resource_pool[resource_key] = resource

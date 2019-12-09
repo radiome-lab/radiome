@@ -6,8 +6,6 @@ import re
 
 
 class Strategy:
-
-
     __forks: OrderedDictType[str, str]
 
     def __init__(self,
