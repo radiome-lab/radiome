@@ -288,7 +288,7 @@ def register_workflow(workflow: pe.Workflow, config, resource_pool: ResourcePool
                          anat_brain_mask, 'in_file_a')
         generated_resources[
             ResourceKey(str(resource_key),
-                        desc=Strategy(resource_key.strategy, skullstrip='afni', suffix='mask'))] = Resource(
+                        desc=Strategy(resource_key.strategy, skullstrip='afni'), suffix='mask')] = Resource(
             anat_brain_mask, 'out_file')
 
     for resource_key, resource in generated_resources:
