@@ -73,5 +73,6 @@ def register_workflow(workflow: pe.Workflow, config: dict, resource_pool: Resour
             output_node, output_name = register_resample(workflow, output_node, output_name)
             generated_resources[ResourceKey(str(resource_key), {'reorient'})] = Resource(output_node, output_name)
 
-    for resource_key, resource in generated_resources.items():
-        resource_pool[resource_key] = resource
+    # TODO how to add new resource
+    # for resource_key, resource in generated_resources.items():
+        # resource_pool[resource_key] = resource
