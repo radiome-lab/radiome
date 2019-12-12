@@ -115,6 +115,15 @@ class TestResourcePool(TestCase):
 
         self.assertEqual(len(extraction), 4 * subs * sess * runs)
 
+        extraction = list(rp[[
+            'sub-*_space-orig_T1w',
+            'sub-*_space-orig_mask',
+            'sub-*_space-orig_bold',
+        ]])
+
+        self.assertEqual(len(extraction), 4 * sess * runs)
+
+
     def test_resource_key(self):
 
         key_dict = {'atlas': 'aal',
