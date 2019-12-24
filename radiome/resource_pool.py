@@ -9,7 +9,7 @@ class Strategy:
     _forks: OrderedDictType[str, str]
 
     def __init__(self,
-                 forks,
+                 forks=None,
                  **kwargs):
 
         if isinstance(forks, str):
@@ -24,7 +24,8 @@ class Strategy:
                 ]
             ]
         else:
-            forks += [
+            forks = forks or {}
+            forks = [
                 (str(k), str(v))
                 for k, v in forks.items()
             ]
@@ -56,18 +57,31 @@ class Strategy:
         return hash(self) == hash(other)
 
     def __str__(self):
-        return '-'.join([
+        return '+'.join([
             f'{k}-{v}'
             for k, v in self._forks.items()
         ])
 
+    def __add__(self, other):
+        s = Strategy({})
+        for k, v in self._forks.items():
+            s._forks[k] = v
+        for k, v in other._forks.items():
+            s._forks[k] = v
+        return s
+
+    def __len__(self):
+        return len(self._forks)
+
+    def __iter__(self):
+        return iter(self._forks.items())
 
 class ResourceKey:
 
     supported_entities: List[str] = ['sub', 'ses', 'run', 'task',
                                      'space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
-    valid_suffixes: List[str] = ['*', 'mask', 'bold', 'T1w']
+    valid_suffixes: List[str] = ['*', 'mask', 'bold', 'brain', 'T1w']
 
     branching_entities: List[str] = ['sub', 'ses', 'run', 'task']
 
@@ -84,6 +98,7 @@ class ResourceKey:
         entities = {}
         suffix = '*'
         tags = tags or set()
+        strategy = Strategy()
 
         # initialize dictionary from a key
         if isinstance(entity_dictionary, str):
@@ -106,6 +121,7 @@ class ResourceKey:
                     str(k): str(v)
                     for k, v in entity_dictionary._entities.items()
                 }
+                strategy = entity_dictionary._strategy
 
             else:
                 entities = {
@@ -136,12 +152,14 @@ class ResourceKey:
         self._suffix = suffix
         self._entities = {}
 
-        self._strategy = None
         if 'desc' in entities:
             try:
-                self._strategy = Strategy(entities['desc'])
+                strategy = Strategy(entities['desc'])
+                del entities['desc']
             except ValueError:
                 pass
+
+        self._strategy = strategy
 
         for key, value in entities.items():
             if key not in self.supported_entities:
@@ -149,8 +167,8 @@ class ResourceKey:
                                f'the resource pool')
 
             if not value:
-                    raise ValueError(f'Entity value cannot '
-                                     f'be empty: "{value}"')
+                raise ValueError(f'Entity value cannot '
+                                 f'be empty: "{value}"')
 
             self._entities[key] = value
 
@@ -189,7 +207,7 @@ class ResourceKey:
                 if entity in self._entities and entity != 'desc'
             ]
             +
-            ([str(self._strategy)] if self._strategy else [])
+            (['desc-' + str(self._strategy)] if len(self._strategy) > 0 else [])
             +
             [self._suffix]
         ))
@@ -281,9 +299,9 @@ class ResourceKey:
     @property
     def strategy(self):
         if not self._strategy:
-            return {}
+            return Strategy({})
 
-        return self._strategy.forks
+        return self._strategy
 
     @property
     def entities(self):
@@ -301,19 +319,29 @@ class ResourceKey:
 
     def isfilter(self):
         return \
-            len(self._entities) == 0 or \
             any(
                 v == '*'
                 for v in self._entities.values()
             ) or \
             self._suffix == '*'
 
+    def isbroad(self):
+        return \
+            len(self._entities) == 0 and \
+            self._suffix == '*'
+
 
 class Resource:
+    def __init__(self, key, content):
+        self._key = key
+        self._content = content
 
-    def __init__(self, workflow_node, slot):
-        self.workflow_node = workflow_node
-        self.slot = slot
+    def __copy__(self):
+        return Resource(self._key, self._content)
+
+
+class ComputedResource(Resource):
+    pass
 
 
 class ResourcePool:
@@ -326,7 +354,6 @@ class ResourcePool:
 
     def __init__(self):
         self._pool = {}
-        self._pool = {}
         self._pool_by_type = {}
         self._pool_by_tag = {}
         self._pool_branches = {
@@ -337,6 +364,9 @@ class ResourcePool:
             entity: set()
             for entity in ResourceKey.branching_entities
         }
+
+    def __iter__(self):
+        return iter(self._pool.items())
 
     def __contains__(self, key: ResourceKey) -> bool:
         for rp_key in self._pool.keys():
@@ -353,10 +383,11 @@ class ResourcePool:
             try:
                 return self._pool[key]
             except KeyError:
-                return self._pool[next(sorted([
-                    k in key
+                return self._pool[next(iter(sorted([
+                    k
                     for k in self._pool.keys()
-                ], reverse=True))]
+                    if k in key
+                ], reverse=True)))]
 
         if key in self._pool_by_type:
             return self._pool_by_type[key]
@@ -373,6 +404,12 @@ class ResourcePool:
 
         if resource_key.isfilter():
             raise KeyError(f'Resource key cannot be a filter: {resource_key}')
+
+        if not isinstance(resource, Resource):
+            resource = Resource(resource_key, resource)
+        else:
+            resource = resource.__copy__()
+            resource._key = resource_key
 
         self._pool[resource_key] = resource
 
@@ -407,13 +444,17 @@ class ResourcePool:
 
         resources = [ResourceKey(r) for r in resources]
 
+        too_broad_resources = [r for r in resources if r.isbroad()]
+        if too_broad_resources:
+            raise KeyError(f'Extracted resource keys too broad: {too_broad_resources}')
+
         for resource in resources:
             extracted_resources[resource] = [
                 r for r in self._pool if r in resource
             ]
 
             for matching in extracted_resources[resource]:
-                for strategy, name in matching.strategy.items():
+                for strategy, name in matching.strategy:
                     if strategy not in strategies:
                         strategies[strategy] = set()
                     strategies[strategy].add(name)
@@ -500,7 +541,9 @@ class ResourcePool:
 
                         if branched_resource in extracted_resource_pool:
                             if self[strategy_extracted_resource] != extracted_resource_pool[branched_resource]:
-                                raise ValueError()
+                                raise ValueError(f'There was an error extracting the resource {branched_resource}: '
+                                                 f'Adressing different resources: {self[strategy_extracted_resource]} '
+                                                 f'and {extracted_resource_pool[branched_resource]}')
                             continue
 
                         extracted_resource_pool[branched_resource] = self[strategy_extracted_resource]
@@ -510,32 +553,47 @@ class ResourcePool:
 
             # Assert strategy has all the resources required
             if all(e in extracted_resource_pool for e in extracted_resources):
+                expected_strategy_combination = {}
+                if strategy_combination:
+                    expected_strategy_combination['desc'] = strategy_combination
                 strategy_key = ResourceKey(
-                    desc=strategy_combination,
+                    **expected_strategy_combination,
                     **expected_branching,
                     suffix='*'
                 )
                 yield strategy_key, StrategyResourcePool(strategy_key, extracted_resource_pool)
 
 
-class StrategyResourcePool(ResourcePool):
+class StrategyResourcePool:
 
     def __init__(self, strategy, resource_pool):
-
-        super(StrategyResourcePool, self).__init__()
-
-        self._pool.update(resource_pool._pool)
-        self._pool_by_type.update(resource_pool._pool_by_type)
-        self._pool_by_tag.update(resource_pool._pool_by_tag)
-        self._pool_branches.update(resource_pool._pool_branches)
-        self._pool_branched_resources.update(resource_pool._pool_branched_resources)
-
         self._strategy = strategy
         self._reference_pool = resource_pool
 
+    def _map(self, resource_key):
+        if type(resource_key) is list:
+            return [self._map(k) for k in resource_key]
+
+        if not isinstance(resource_key, ResourceKey):
+            return resource_key
+
+        return ResourceKey(
+            resource_key,
+            **self._strategy.entities
+            desc=self._strategy.strategy + resource_key.strategy
+        )
+
+    def __iter__(self):
+        return iter(
+            (k, v) for k, v in self._reference_pool.items()
+            if k in self._strategy
+        )
+
+    def __contains__(self, key: ResourceKey) -> bool:
+        return self._reference_pool.__contains__(self._map(key))
+
+    def __getitem__(self, key: Union[ResourceKey, str, List[str]]) -> Union[Resource, Dict]:
+        return self._reference_pool.__getitem__(self._map(key))
+
     def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
-
-        super().__setitem__(resource_key, resource)
-
-        strategic_resource_key = ResourceKey(resource_key, desc=self._strategy)
-        self._reference_pool[strategic_resource_key] = resource
+        return self._reference_pool.__setitem__(self._map(key), resource)

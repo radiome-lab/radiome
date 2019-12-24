@@ -18,15 +18,13 @@ class TestResourcePool(TestCase):
         rp[resource_key] = resource
 
         _, extracted_rp = next(rp[[ResourceKey('atlas-*_mask', tags=['write_to_mni'])]])
+        _, extracted_rp = next(rp[[ResourceKey('mask', tags=['write_to_mni'])]])
 
         self.assertEqual(rp[resource_key], resource)
         self.assertEqual(rp['write_to_mni'][resource_key], resource)
         self.assertEqual(rp['mask'][resource_key], resource)
 
     def test_resource_pool_extraction(self):
-
-        workflow = object()
-        slot = 'output_file'
 
         rp = ResourcePool()
 
