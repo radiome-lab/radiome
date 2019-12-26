@@ -203,9 +203,9 @@ class ResourceKey:
                 try:
                     strategy = Strategy(entities['desc'])
                     del entities['desc']
-                except:
+                except ValueError:
                     pass
-        
+
         if 'strategy' in entities:
             strategy = Strategy(entities['strategy'])
             del entities['strategy']
@@ -318,7 +318,7 @@ class ResourceKey:
             my_strat = self.strategy
             key_strat = key.strategy
 
-            if not my_strat in key_strat:
+            if my_strat not in key_strat:
                 return False
 
             if self.tags:
@@ -625,7 +625,7 @@ class StrategyResourcePool:
         self._reference_pool = resource_pool
 
     def _map(self, resource_key):
-        if type(resource_key) is list:
+        if isinstance(resource_key, list):
             return [self._map(k) for k in resource_key]
 
         if not isinstance(resource_key, ResourceKey):
