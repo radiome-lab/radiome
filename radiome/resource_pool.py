@@ -25,9 +25,10 @@ class Strategy:
             ]
         else:
             forks = forks or {}
+            items = forks.items() if isinstance(forks, dict) else forks
             forks = [
                 (str(k), str(v))
-                for k, v in forks.items()
+                for k, v in items
             ]
 
         forks += [
@@ -75,6 +76,21 @@ class Strategy:
 
     def __iter__(self):
         return iter(self._forks.items())
+
+    def __getitem__(self, key):
+        return self._forks[key]
+
+    def __contains__(self, other):
+        my_strat = self.forks
+        other_strat = other.forks
+
+        for k, v in other_strat.items():
+            if k not in my_strat:
+                continue
+            if v != my_strat[k]:
+                return False
+
+        return True
 
 class ResourceKey:
 
@@ -138,6 +154,10 @@ class ResourceKey:
 
             for key, value in kwargs.items():
                 if key == 'suffix':
+                    continue
+
+                if key == 'desc':
+                    entities[key] = value
                     continue
 
                 if value is None:
@@ -257,23 +277,20 @@ class ResourceKey:
                     if value != key._entities[entity]:
                         return False
 
-            if 'desc' in key.entities and 'desc' in self._entities:
+            # if 'desc' in key.entities and 'desc' in self._entities:
 
-                if key.entities['desc'] == '^':
-                    if 'desc' in key._entities:
-                        return False
+            #     if key.entities['desc'] == '^':
+            #         if 'desc' in key._entities:
+            #             return False
 
-                elif 'desc' not in key._entities:
-                    return True
+            #     elif 'desc' not in key._entities:
+            #         return True
 
-                my_strat = self.strategy
-                key_strat = key.strategy
+            my_strat = self.strategy
+            key_strat = key.strategy
 
-                for k, v in key_strat.items():
-                    if k not in my_strat:
-                        continue
-                    if v != my_strat[k]:
-                        return False
+            if not my_strat in key_strat:
+                return False
 
             if self.tags:
                 if not key._tags:
@@ -332,12 +349,20 @@ class ResourceKey:
 
 
 class Resource:
-    def __init__(self, key, content):
-        self._key = key
+    def __init__(self, content):
         self._content = content
 
     def __copy__(self):
-        return Resource(self._key, self._content)
+        return Resource(self._content)
+
+    def __hash__(self):
+        return hash(self.__str__())
+
+    def __str__(self):
+        return str(self._content)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
 
 class ComputedResource(Resource):
@@ -406,10 +431,7 @@ class ResourcePool:
             raise KeyError(f'Resource key cannot be a filter: {resource_key}')
 
         if not isinstance(resource, Resource):
-            resource = Resource(resource_key, resource)
-        else:
-            resource = resource.__copy__()
-            resource._key = resource_key
+            resource = Resource(resource)
 
         self._pool[resource_key] = resource
 
@@ -577,10 +599,17 @@ class StrategyResourcePool:
         if not isinstance(resource_key, ResourceKey):
             return resource_key
 
+        new_key = {
+            **self._strategy,
+            **resource_key,
+        }
+
+        new_key_strat = self._strategy.strategy + resource_key.strategy
+        if new_key_strat:
+            new_key['desc'] = new_key_strat
+
         return ResourceKey(
-            resource_key,
-            **self._strategy.entities
-            desc=self._strategy.strategy + resource_key.strategy
+            **new_key
         )
 
     def __iter__(self):
@@ -596,4 +625,4 @@ class StrategyResourcePool:
         return self._reference_pool.__getitem__(self._map(key))
 
     def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
-        return self._reference_pool.__setitem__(self._map(key), resource)
+        return self._reference_pool.__setitem__(self._map(resource_key), resource)

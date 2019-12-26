@@ -8,12 +8,11 @@ class TestResourcePool(TestCase):
 
         rp = ResourcePool()
 
-        workflow = object()
         slot = 'output_file'
         tags = ['write_to_mni', 'smooth_before', 'write_at_4mm', 'qc_carpet']
 
         resource_key = ResourceKey('atlas-aal_roi-112_desc-skullstripping-afni_mask', tags=tags)
-        resource = Resource(workflow, slot)
+        resource = Resource(slot)
 
         rp[resource_key] = resource
 
@@ -26,20 +25,22 @@ class TestResourcePool(TestCase):
 
     def test_resource_pool_extraction(self):
 
+        slot = ''
+
         rp = ResourcePool()
 
-        rp['space-orig_T1w'] = Resource(workflow, slot)
+        rp['space-orig_T1w'] = Resource(slot)
 
-        rp['space-orig_desc-skullstrip-afni_mask'] = Resource(workflow, slot)
-        rp['space-orig_desc-skullstrip-bet_mask'] = Resource(workflow, slot)
+        rp['space-orig_desc-skullstrip-afni_mask'] = Resource(slot)
+        rp['space-orig_desc-skullstrip-bet_mask'] = Resource(slot)
 
-        rp['space-orig_desc-skullstrip-afni+nuis-gsr_bold'] = Resource(workflow, slot)
-        rp['space-orig_desc-skullstrip-bet+nuis-gsr_bold'] = Resource(workflow, slot)
-        rp['space-orig_desc-skullstrip-afni+nuis-nogsr_bold'] = Resource(workflow, slot)
-        rp['space-orig_desc-skullstrip-bet+nuis-nogsr_bold'] = Resource(workflow, slot)
+        rp['space-orig_desc-skullstrip-afni+nuis-gsr_bold'] = Resource(slot)
+        rp['space-orig_desc-skullstrip-bet+nuis-gsr_bold'] = Resource(slot)
+        rp['space-orig_desc-skullstrip-afni+nuis-nogsr_bold'] = Resource(slot)
+        rp['space-orig_desc-skullstrip-bet+nuis-nogsr_bold'] = Resource(slot)
 
-        rp['space-MNI_desc-nuis-gsr_mask'] = Resource(workflow, slot)
-        rp['space-MNI_desc-nuis-nogsr_mask'] = Resource(workflow, slot)
+        rp['space-MNI_desc-nuis-gsr_mask'] = Resource(slot)
+        rp['space-MNI_desc-nuis-nogsr_mask'] = Resource(slot)
 
         extraction = dict(rp.extract(
             'space-orig_T1w',
@@ -77,8 +78,6 @@ class TestResourcePool(TestCase):
 
     def test_resource_pool_extraction_subsesrun(self):
 
-        workflow = object()
-
         rp = ResourcePool()
 
         subs = 4
@@ -87,16 +86,16 @@ class TestResourcePool(TestCase):
 
         for sub, ses in product(range(subs), range(sess)):
             ses_prefix = 'sub-%03d_ses-%03d_' % (sub, ses)
-            rp[ses_prefix + 'space-orig_T1w'] = Resource(workflow, ses_prefix + 'space-orig_T1w')
-            rp[ses_prefix + 'space-orig_desc-skullstrip-afni_mask'] = Resource(workflow, ses_prefix + 'space-orig_desc-skullstrip-afni_mask')
-            rp[ses_prefix + 'space-orig_desc-skullstrip-bet_mask'] = Resource(workflow, ses_prefix + 'space-orig_desc-skullstrip-bet_mask')
+            rp[ses_prefix + 'space-orig_T1w'] = Resource(ses_prefix + 'space-orig_T1w')
+            rp[ses_prefix + 'space-orig_desc-skullstrip-afni_mask'] = Resource(ses_prefix + 'space-orig_desc-skullstrip-afni_mask')
+            rp[ses_prefix + 'space-orig_desc-skullstrip-bet_mask'] = Resource(ses_prefix + 'space-orig_desc-skullstrip-bet_mask')
 
         for sub, ses, run in product(range(subs), range(sess), range(runs)):
             run_prefix = 'sub-%03d_ses-%03d_run-%03d_' % (sub, ses, run)
-            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold'] = Resource(workflow, run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold')
-            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold'] = Resource(workflow, run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold')
-            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold'] = Resource(workflow, run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold')
-            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold'] = Resource(workflow, run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold')
 
         extraction = list(rp[[
             'space-orig_T1w',
@@ -152,6 +151,8 @@ class TestResourcePool(TestCase):
         self.assertEqual(temp_dict_from_string[new_key_from_string], temp_dict_from_dict[new_key_from_dict])
         self.assertEqual(temp_dict_from_string[new_key_from_string], temp_dict_from_kwargs[new_key_from_kwargs])
 
+        self.assertEqual(ResourceKey(new_key_from_string, atlas='mni').entities['atlas'], 'mni')
+
         original_key = ResourceKey('atlas-aal_roi-112_desc-skullstripping-afni_mask')
 
         self.assertTrue(ResourceKey('desc-skullstripping-afni_mask') in original_key)
@@ -159,16 +160,16 @@ class TestResourcePool(TestCase):
 
         # Strategy matching
         self.assertTrue(original_key in ResourceKey('atlas-aal_roi-112_desc-skullstripping-afni+nuis-gsr_mask'))
-
-        # Wildcard matching
-        self.assertTrue(ResourceKey('sub-001_mask') in ResourceKey('sub-*_mask'))
+        self.assertTrue(ResourceKey('space-MNI_desc-nuis-nogsr_mask') in ResourceKey('space-MNI_desc-nuis-nogsr_mask'))
+        self.assertTrue(ResourceKey('space-MNI_desc-nuis-nogsr_mask') not in ResourceKey('space-MNI_desc-nuis-gsr_mask'))
 
         self.assertTrue(
             ResourceKey('sub-000_ses-000_run-000_space-orig_T1w') in
             ResourceKey('space-orig_desc-skullstripping-bet+nuis-nogsr_T1w')
         )
 
-        self.assertEqual(ResourceKey(new_key_from_string, atlas='mni').entities['atlas'], 'mni')
+        # Wildcard matching
+        self.assertTrue(ResourceKey('sub-001_mask') in ResourceKey('sub-*_mask'))
 
 
     def test_invalid_resource_key(self):

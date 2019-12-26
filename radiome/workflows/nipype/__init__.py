@@ -19,10 +19,10 @@ class NipypeJob(Job):
         if attr in self._interface.inputs.visible_traits():
             if attr not in self._inputs:
                 return getattr(self._interface.inputs, attr)
-            return NipypeComputedResource(None, (self, attr))
+            return NipypeComputedResource((self, attr))
 
         if attr in self._interface.output_spec.class_visible_traits():
-            return NipypeComputedResource(None, (self, attr))
+            return NipypeComputedResource((self, attr))
 
         raise KeyError(f'Invalid input/output name: {attr}')
 
