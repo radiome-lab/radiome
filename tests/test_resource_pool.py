@@ -1,5 +1,5 @@
 from unittest import TestCase
-from radiome.resource_pool import Resource, ResourceKey, ResourcePool
+from radiome.resource_pool import Resource, ResourceKey, ResourceKey as R, ResourcePool
 from itertools import product
 
 class TestResourcePool(TestCase):
@@ -16,10 +16,10 @@ class TestResourcePool(TestCase):
 
         rp[resource_key] = resource
 
-        _, extracted_rp = next(rp[[ResourceKey('atlas-*_mask', tags=['write_to_mni'])]])
-        _, extracted_rp = next(rp[[ResourceKey('mask', tags=['write_to_mni'])]])
-
         self.assertEqual(rp[resource_key], resource)
+
+        # TODO review case
+        self.assertEqual(rp[R(tags=['write_to_mni'])], resource)
         self.assertEqual(rp['write_to_mni'][resource_key], resource)
         self.assertEqual(rp['mask'][resource_key], resource)
 
@@ -139,7 +139,7 @@ class TestResourcePool(TestCase):
         self.assertEqual(str(new_key_from_string), str(new_key_from_dict))
         self.assertEqual(str(new_key_from_string), str(new_key_from_kwargs))
         self.assertEqual(str(new_key_from_dict), str(new_key_from_kwargs))
-        self.assertEqual(new_key_from_string['desc'], new_key_from_dict['desc'])
+        self.assertEqual(new_key_from_string['strategy'], new_key_from_dict['strategy'])
         self.assertEqual(new_key_from_dict['atlas'], 'aal')
         with self.assertRaises(KeyError):
             value = new_key_from_dict['space']

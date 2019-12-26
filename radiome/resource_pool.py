@@ -6,6 +6,14 @@ import re
 
 class Strategy:
 
+    KEYVAL_SEP = '-'
+    FORK_SEP = '+'
+
+    _KVS = re.escape(KEYVAL_SEP)
+    _FS = re.escape(FORK_SEP)
+    FORMAT = rf'[^{_KVS}{_FS}]+{_KVS}[^{_FS}]+({_FS}[^{_KVS}{_FS}]+{_KVS}[^{_FS}]+)*'
+    del _KVS, _FS
+
     _forks: OrderedDictType[str, str]
 
     def __init__(self,
@@ -13,14 +21,14 @@ class Strategy:
                  **kwargs):
 
         if isinstance(forks, str):
-            if not re.match(r'[^-+]+-[^+]+(\+[^-+]+-[^+]+)*', forks):
-                raise ValueError(f'Forks should be in the format "strat-value" '
-                                 f'separated by +, provided: "{forks}"')
+            if not re.match(Strategy.FORMAT, forks):
+                raise ValueError(f'Forks should be in the format "strat{Strategy.KEYVAL_SEP}value" '
+                                 f'separated by {Strategy.FORK_SEP}, provided: "{forks}"')
             forks = [
                 (k, v)
                 for k, v in [
-                    strat.split('-', 1)
-                    for strat in forks.split('+')
+                    strat.split(Strategy.KEYVAL_SEP, 1)
+                    for strat in forks.split(Strategy.FORK_SEP)
                 ]
             ]
         else:
@@ -58,8 +66,8 @@ class Strategy:
         return hash(self) == hash(other)
 
     def __str__(self):
-        return '+'.join([
-            f'{k}-{v}'
+        return Strategy.FORK_SEP.join([
+            f'{k}{Strategy.KEYVAL_SEP}{v}'
             for k, v in self._forks.items()
         ])
 
@@ -73,6 +81,10 @@ class Strategy:
 
     def __len__(self):
         return len(self._forks)
+
+    def __bool__(self):
+        return len(self) > 0
+    __nonzero__ = __bool__
 
     def __iter__(self):
         return iter(self._forks.items())
@@ -94,9 +106,19 @@ class Strategy:
 
 class ResourceKey:
 
+    KEYVAL_SEP = '-'
+    ENTITY_SEP = '_'
+    STRAT_SEP = '#'
+
+    _KVS = re.escape(KEYVAL_SEP)
+    _ES = re.escape(ENTITY_SEP)
+    _SS = re.escape(STRAT_SEP)
+    FORMAT = rf'([^{_KVS}{_ES}]+{_KVS}[^{_ES}{_SS}]+(_ES[^{_KVS}{_ES}]+{_KVS}[^{_ES}{_SS}]+)*)?([^{_KVS}{_ES}]+)?'
+
     supported_entities: List[str] = ['sub', 'ses', 'run', 'task',
                                      'space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
+
     valid_suffixes: List[str] = ['*', 'mask', 'bold', 'brain', 'T1w']
 
     branching_entities: List[str] = ['sub', 'ses', 'run', 'task']
@@ -107,7 +129,7 @@ class ResourceKey:
     _tags: Set[str]
 
     def __init__(self,
-                 entity_dictionary: Union[str, Dict[str, str], None] = None,
+                 key: Union[str, Dict[str, str], None] = None,
                  tags: Union[Set[str], None] = None,
                  **kwargs) -> None:
 
@@ -117,32 +139,36 @@ class ResourceKey:
         strategy = Strategy()
 
         # initialize dictionary from a key
-        if isinstance(entity_dictionary, str):
-            parsed_entities = entity_dictionary.split('_')
+        if isinstance(key, str):
+            if not re.match(ResourceKey.FORMAT, key):
+                raise ValueError(f'Resource keys should be in the format "key{ResourceKey.KEYVAL_SEP}value" '
+                                 f'separated by {ResourceKey.ENTITY_SEP}, provided: "{key}"')
 
-            if '-' not in parsed_entities:
+            parsed_entities = key.split(ResourceKey.ENTITY_SEP)
+
+            if ResourceKey.KEYVAL_SEP not in parsed_entities[-1]:
                 parsed_entities, suffix = parsed_entities[:-1], parsed_entities[-1]
 
             for entity_pair in parsed_entities:
-                key, value = entity_pair.split('-', 1)
+                key, value = entity_pair.split(ResourceKey.KEYVAL_SEP, 1)
                 entities[key] = value
 
         # initialize from a dictionary or custom parameters
-        elif isinstance(entity_dictionary, (dict, ResourceKey)):
+        elif isinstance(key, (dict, ResourceKey)):
 
-            if isinstance(entity_dictionary, ResourceKey):
-                suffix = entity_dictionary.suffix
-                tags |= entity_dictionary.tags
+            if isinstance(key, ResourceKey):
+                suffix = key.suffix
+                tags |= key.tags
                 entities = {
-                    str(k): str(v)
-                    for k, v in entity_dictionary._entities.items()
+                    k: v
+                    for k, v in key._entities.items()
                 }
-                strategy = entity_dictionary._strategy
+                strategy = key._strategy
 
             else:
                 entities = {
-                    str(k): str(v)
-                    for k, v in entity_dictionary.items()
+                    str(k): v
+                    for k, v in key.items()
                 }
 
                 if 'suffix' in entities:
@@ -156,15 +182,11 @@ class ResourceKey:
                 if key == 'suffix':
                     continue
 
-                if key == 'desc':
-                    entities[key] = value
-                    continue
-
                 if value is None:
                     if key in entities:
                         del entities[key]
                 else:
-                    entities[key] = str(value)
+                    entities[key] = value
 
         if suffix not in self.valid_suffixes:
             raise ValueError(f'Invalid suffix "{suffix}"')
@@ -173,24 +195,33 @@ class ResourceKey:
         self._entities = {}
 
         if 'desc' in entities:
-            try:
-                strategy = Strategy(entities['desc'])
-                del entities['desc']
-            except ValueError:
-                pass
+            entities['desc'] = str(entities['desc'])
+            if ResourceKey.STRAT_SEP in entities['desc']:
+                entities['desc'], strategy = entities['desc'].split(ResourceKey.STRAT_SEP)
+                strategy = Strategy(strategy)
+            else:
+                try:
+                    strategy = Strategy(entities['desc'])
+                    del entities['desc']
+                except:
+                    pass
+        
+        if 'strategy' in entities:
+            strategy = Strategy(entities['strategy'])
+            del entities['strategy']
 
         self._strategy = strategy
 
         for key, value in entities.items():
             if key not in self.supported_entities:
-                raise KeyError(f'Entity {key} is not supported by '
-                               f'the resource pool')
+                raise KeyError(f'Entity "{key}" is not supported '
+                               f'by the resource pool')
 
             if not value:
-                raise ValueError(f'Entity value cannot '
-                                 f'be empty: "{value}"')
+                raise ValueError(f'Entity "{key}" value '
+                                 f'cannot be empty')
 
-            self._entities[key] = value
+            self._entities[key] = str(value)
 
         self._tags = {str(t) for t in tags}
 
@@ -220,27 +251,37 @@ class ResourceKey:
         return hash(self.__str__())
 
     def __str__(self):
-        return '_'.join(filter(None,
+        desc = ResourceKey.STRAT_SEP.join(filter(None, [
+            self._entities.get('desc', ''),
+            str(self._strategy)
+        ]))
+        if desc:
+            desc = f'desc{ResourceKey.KEYVAL_SEP}{desc}'
+
+        return ResourceKey.ENTITY_SEP.join(filter(None,
             [
-                '-'.join([entity, self._entities[entity]])
+                ResourceKey.KEYVAL_SEP.join([entity, self._entities[entity]])
                 for entity in self.supported_entities
                 if entity in self._entities and entity != 'desc'
             ]
             +
-            (['desc-' + str(self._strategy)] if len(self._strategy) > 0 else [])
+            ([desc] if desc else [])
             +
             [self._suffix]
         ))
 
     def keys(self):
-        return list(self._entities.keys()) + ['desc', 'suffix']
+        return \
+            list(self._entities.keys()) + \
+            ['suffix'] + \
+            (['strategy'] if self._strategy else [])
 
     def __getitem__(self, item):
 
         if item == 'suffix':
             return self._suffix
 
-        if item == 'desc':
+        if item == 'strategy':
             return self._strategy
 
         if item not in self.supported_entities:
@@ -260,9 +301,6 @@ class ResourceKey:
                 return False
 
             for entity, value in self._entities.items():
-                if entity == 'desc':
-                    continue
-
                 if value == '^':
                     if entity in key._entities:
                         return False
@@ -276,15 +314,6 @@ class ResourceKey:
 
                     if value != key._entities[entity]:
                         return False
-
-            # if 'desc' in key.entities and 'desc' in self._entities:
-
-            #     if key.entities['desc'] == '^':
-            #         if 'desc' in key._entities:
-            #             return False
-
-            #     elif 'desc' not in key._entities:
-            #         return True
 
             my_strat = self.strategy
             key_strat = key.strategy
@@ -513,8 +542,8 @@ class ResourcePool:
 
             expected_branching = dict(zip(expected_branching_keys, branching_values))
 
-            strategy_combination = '+'.join([
-                '-'.join([k, v])
+            strategy_combination = Strategy([
+                (k, v)
                 for k, v
                 in zip(strategies_keys, strategies_values)
             ])
@@ -530,7 +559,7 @@ class ResourcePool:
 
                 resource_filter = ResourceKey(
                     resource,
-                    desc=strategy_combination or None,
+                    strategy=strategy_combination or None,
                     **expected_branching,
                     **expected_resource_unbranching
                 )
@@ -577,7 +606,7 @@ class ResourcePool:
             if all(e in extracted_resource_pool for e in extracted_resources):
                 expected_strategy_combination = {}
                 if strategy_combination:
-                    expected_strategy_combination['desc'] = strategy_combination
+                    expected_strategy_combination['strategy'] = strategy_combination
                 strategy_key = ResourceKey(
                     **expected_strategy_combination,
                     **expected_branching,
@@ -587,6 +616,9 @@ class ResourcePool:
 
 
 class StrategyResourcePool:
+    """
+    A non-safe resource pool proxy for a specific strategy.
+    """
 
     def __init__(self, strategy, resource_pool):
         self._strategy = strategy
@@ -606,7 +638,7 @@ class StrategyResourcePool:
 
         new_key_strat = self._strategy.strategy + resource_key.strategy
         if new_key_strat:
-            new_key['desc'] = new_key_strat
+            new_key['strategy'] = new_key_strat
 
         return ResourceKey(
             **new_key
