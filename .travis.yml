@@ -26,5 +26,5 @@ deploy:
     secure: PLEASE_REPLACE_ME
   on:
     tags: true
-    repo: ccraddock/radiome
+    repo: radiome-flow/radiome
     python: 3.8
