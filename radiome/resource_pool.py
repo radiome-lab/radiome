@@ -1,4 +1,4 @@
-from typing import Union, List, Set, Dict, overload
+from typing import Union, List, Set, Dict
 from collections import OrderedDict
 import itertools
 import re
@@ -22,8 +22,10 @@ class Strategy:
 
         if isinstance(forks, str):
             if not re.match(Strategy.FORMAT, forks):
-                raise ValueError(f'Forks should be in the format "strat{Strategy.KEYVAL_SEP}value" '
-                                 f'separated by {Strategy.FORK_SEP}, provided: "{forks}"')
+                raise ValueError(f'Forks should be in the format '
+                                 f'"strat{Strategy.KEYVAL_SEP}value" '
+                                 f'separated by {Strategy.FORK_SEP}, '
+                                 f'provided: "{forks}"')
             forks = [
                 (k, v)
                 for k, v in [
