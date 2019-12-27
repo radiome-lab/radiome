@@ -1,4 +1,4 @@
-from typing import Union, List, Set, Dict, OrderedDict as OrderedDictType, overload
+from typing import Union, List, Set, Dict, overload
 from collections import OrderedDict
 import itertools
 import re
@@ -14,7 +14,7 @@ class Strategy:
     FORMAT = rf'[^{_KVS}{_FS}]+{_KVS}[^{_FS}]+({_FS}[^{_KVS}{_FS}]+{_KVS}[^{_FS}]+)*'
     del _KVS, _FS
 
-    _forks: OrderedDictType[str, str]
+    _forks: Dict[str, str]
 
     def __init__(self,
                  forks=None,
