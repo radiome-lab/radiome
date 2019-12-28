@@ -73,7 +73,7 @@ class Strategy:
             for k, v in self._forks.items()
         ])
 
-    def __add__(self, other):
+    def __add__(self, other: 'Strategy'):
         s = Strategy({})
         for k, v in self._forks.items():
             s._forks[k] = v
@@ -380,6 +380,7 @@ class ResourceKey:
 
 
 class Resource:
+
     def __init__(self, content):
         self._content = content
 
@@ -387,18 +388,29 @@ class Resource:
         return Resource(self._content)
 
     def __hash__(self):
-        return hash(self.__str__())
+        return hash(self._content)
+
+    def __hexhash__(self):
+        return hex(abs(hash(self)))
+
+    def __shorthash__(self):
+        return self.__hexhash__()[-8:]
 
     def __str__(self):
-        return str(self._content)
+        return f'Resource({self.__shorthash__()})'
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
+    def __repr__(self):
+        return f'Resource({self.__hexhash__()})'
 
-class ComputedResource(Resource):
-    pass
-
+    def resolve(self, execution):
+        return self._content
+    
+    @property
+    def dependencies(self):
+        return {}
 
 class ResourcePool:
 
@@ -550,6 +562,23 @@ class ResourcePool:
                 in zip(strategies_keys, strategies_values)
             ])
 
+            expected_strategy_combination = {}
+            if strategy_combination:
+                expected_strategy_combination['strategy'] = strategy_combination
+                
+            strategy_key = ResourceKey(
+                **expected_strategy_combination,
+                **expected_branching,
+                suffix='*'
+            )
+
+            extracted_resource_pool = StrategyResourcePool(strategy_key, self)
+
+            # Assert strategy has all the resources required
+            if all(e in extracted_resource_pool for e in extracted_resources):
+                yield strategy_key, extracted_resource_pool
+
+            """
             extracted_resource_pool = ResourcePool()
 
             for resource, extracted in extracted_resources.items():
@@ -571,6 +600,8 @@ class ResourcePool:
                 ]
 
                 if strategy_extracted_resources:
+
+                    continue
 
                     for strategy_extracted_resource in strategy_extracted_resources:
 
@@ -604,7 +635,6 @@ class ResourcePool:
                 else:
                     break
 
-            # Assert strategy has all the resources required
             if all(e in extracted_resource_pool for e in extracted_resources):
                 expected_strategy_combination = {}
                 if strategy_combination:
@@ -614,7 +644,9 @@ class ResourcePool:
                     **expected_branching,
                     suffix='*'
                 )
-                yield strategy_key, StrategyResourcePool(strategy_key, extracted_resource_pool)
+                yield strategy_key, StrategyResourcePool(strategy_key, self)
+            """
+
 
 
 class StrategyResourcePool:
