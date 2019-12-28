@@ -1,7 +1,9 @@
+import logging
 import networkx as nx
 from dask import delayed
 from radiome.resource_pool import Resource, ResourcePool
 
+logger = logging.getLogger('radiome.execution')
 
 # pos = nx.spring_layout(G)
 # nx.draw(G, pos, node_size=20, edge_color='r', font_size=20, with_labels=True)
@@ -50,8 +52,12 @@ class ResourceSolver:
         if execution is None:
             execution = Execution()
 
-        for SG in nx.weakly_connected_component_subgraphs(self.graph):
+        G = self.graph
+        SGs = (G.subgraph(c) for c in nx.weakly_connected_components(G))
+
+        for SG in SGs:
             for resource in nx.topological_sort(SG):
+                logger.info(f'Resolving resource "{resource}"')
                 resource.resolve(execution)
 
         # Allow delayed executors to perform all the tasks
@@ -65,6 +71,8 @@ class ResourceSolver:
 
         return resource_pool
 
+
+# TODO implement file caching
 class Execution:
 
     results = {}
