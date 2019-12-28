@@ -9,6 +9,7 @@ requirements = [
     'nipype==1.2.3',
     'dask[delayed]==2.3',
     'networkx==2.3',
+    'cloudpickle==1.2.2'
 ]
 
 setup_requirements = [
