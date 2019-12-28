@@ -6,7 +6,9 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 requirements = [
-    'nipype',
+    'nipype==1.2.3',
+    'dask==2.3',
+    'networkx==2.3',
 ]
 
 setup_requirements = [

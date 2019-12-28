@@ -1,10 +1,6 @@
 from unittest import TestCase
 from radiome.resource_pool import ResourceKey as R, Resource, ResourcePool
 from radiome.execution import ResourceSolver, Job, PythonJob
-import radiome.workflows.anat as anat
-
-import matplotlib.pyplot as plt
-import networkx as nx
 
 
 class TestExecution(TestCase):
