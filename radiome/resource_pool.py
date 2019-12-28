@@ -106,6 +106,7 @@ class Strategy:
 
         return True
 
+
 class ResourceKey:
 
     KEYVAL_SEP = '-'
@@ -696,3 +697,6 @@ class StrategyResourcePool:
 
     def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
         return self._reference_pool.__setitem__(self._map(resource_key), resource)
+
+
+R = ResourceKey

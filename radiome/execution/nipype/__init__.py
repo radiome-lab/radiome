@@ -1,5 +1,7 @@
+import copy
+
 from radiome.resource_pool import Resource, ResourcePool
-from radiome.workflows.workflow import Job, ComputedResource
+from radiome.execution import Job, ComputedResource
 
 from nipype.interfaces.base import BaseInterface
 
