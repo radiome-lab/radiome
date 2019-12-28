@@ -7,7 +7,7 @@ with open('README.rst') as readme_file:
 
 requirements = [
     'nipype==1.2.3',
-    'dask==2.3',
+    'dask[delayed]==2.3',
     'networkx==2.3',
 ]
 
