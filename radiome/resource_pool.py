@@ -407,7 +407,11 @@ class Resource:
 
     def resolve(self, execution):
         return self._content
-    
+
+    @property
+    def content(self):
+        return self._content
+
     @property
     def dependencies(self):
         return {}
@@ -565,7 +569,7 @@ class ResourcePool:
             expected_strategy_combination = {}
             if strategy_combination:
                 expected_strategy_combination['strategy'] = strategy_combination
-                
+
             strategy_key = ResourceKey(
                 **expected_strategy_combination,
                 **expected_branching,

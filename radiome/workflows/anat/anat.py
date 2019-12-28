@@ -1,4 +1,4 @@
-from ..resource_pool import ResourcePool, ResourceKey
+from ..resource_pool import ResourcePool, ResourceKey as R
 
 from nipype.interfaces import afni
 from nipype.interfaces import ants
@@ -16,9 +16,9 @@ from radiome.workflows.nipype import NipypeJob
 def create_workflow(configuration, resource_pool: ResourcePool):
 
     for strat, rp in resource_pool[[
-        ResourceKey('T1w'),
+        R('T1w'),
     ]]:
-        anatomical_image = rp[ResourceKey('T1w')]
+        anatomical_image = rp[R('T1w')]
 
         anat_deoblique = NipypeJob(interface=afni.Refit(deoblique=True), name='anat_deoblique')
         anat_deoblique.in_file = anatomical_image
@@ -32,7 +32,20 @@ def create_workflow(configuration, resource_pool: ResourcePool):
 
         anat_reorient = NipypeJob(interface=afni.Resample(orientation='RPI', outputtype='NIFTI_GZ'),
                                   name='anat_reorient')
-        
-        rp[ResourceKey('T1w', desc='initial-T1')] = anat_reorient.out_file
+        anat_reorient.in_file = n4.output_image
+
+        rp[R('T1w', label='initial')] = anat_reorient.out_file
+
+        # Testing from here
+        anat_reorient_another = NipypeJob(interface=afni.Resample(orientation='RPI', outputtype='NIFTI_GZ'),
+                                  name='anat_reorient_another')
+        anat_reorient_another.in_file = n4.bias_image
+
+        anat_reorient_bias = NipypeJob(interface=afni.Resample(orientation='RPI', outputtype='NIFTI_GZ'),
+                                  name='anat_reorient_bias')
+        anat_reorient_bias.in_file = n4.bias_image
+
+        rp[R('T1w', label='initial-bias')] = anat_reorient_bias.out_file
+        rp[R('T1w', label='initial-another')] = anat_reorient_another.out_file
 
     return resource_pool
