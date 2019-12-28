@@ -5,14 +5,30 @@ from setuptools import setup, find_packages
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
+requirements = [
+    'nipype',
+]
 
-requirements = ['nipype', ]
+setup_requirements = [
+]
 
-setup_requirements = ['pytest-runner', ]
+test_requirements = [
+    'pytest==5.3.0',
+    'pytest-runner==5.2',
+    'pytest-cov==2.8.1',
+    'codecov==2.0.15',
+    'flake8==3.7.9',
+    'tox==3.14.1',
+    'coverage==4.5.4',
+]
 
-test_requirements = ['pytest>=3', ]
+dev_requirements = [
+    'bump2version==0.5.11',
+    'wheel==0.33.6',
+    'watchdog==0.9.0',
+    'Sphinx==2.2.1',
+    'twine==3.1.0',
+] + test_requirements
 
 setup(
     author="Cameron Craddock",
@@ -22,8 +38,6 @@ setup(
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
@@ -36,8 +50,12 @@ setup(
             'radiome=radiome.cli:main',
         ],
     },
+    extras_require={
+        'dev': dev_requirements,
+        'test': test_requirements,
+    },
     install_requires=requirements,
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     include_package_data=True,
     keywords='radiome',
     name='radiome',
