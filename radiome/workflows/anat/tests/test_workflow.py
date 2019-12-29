@@ -13,8 +13,9 @@ from radiome.execution import ResourceSolver, Execution
 class TestWorkflow(TestCase):
 
     def setUp(self):
-
+        self.olddir = os.getcwd()
         self.scratch = tempfile.mkdtemp()
+        os.chdir(self.scratch)
 
         self.subs = [
             's3://fcp-indi/data/Projects/RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/anat/sub-A00008326_ses-BAS1_T1w.nii.gz',
@@ -36,10 +37,11 @@ class TestWorkflow(TestCase):
 
         create_workflow({}, rp)
 
-        exec = Execution(caching=self.scratch)
-        res_rp = ResourceSolver(rp).execute()
+        exec = Execution()
+        res_rp = ResourceSolver(rp).execute(exec)
         
         self.assertIn(R('sub-A00008326_ses-BAS1_label-initial_T1w'), res_rp)
 
     def tearDown(self):
         shutil.rmtree(self.scratch)
+        os.chdir(self.olddir)
