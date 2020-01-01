@@ -404,9 +404,9 @@ class Resource:
         return hash(self) == hash(other)
 
     def __repr__(self):
-        return f'Resource({self.__hexhash__()})'
+        return f'Resource({self.__shorthash__()})'
 
-    def resolve(self, execution):
+    def __call__(self, **state):
         return self._content
 
     @property

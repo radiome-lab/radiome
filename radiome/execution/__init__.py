@@ -50,60 +50,52 @@ class ResourceSolver:
 
         return G
 
-    def execute(self, execution=None):
-        if execution is None:
-            execution = Execution()
+    def execute(self, executor=None):
+        if executor is None:
+            executor = Execution()
 
         G = self.graph
         SGs = (G.subgraph(c) for c in nx.weakly_connected_components(G))
 
+        ## TODO
+        ## Graph trimming
+        ## If it is not on resource pool, it is not important to be cached
+        ## Do not check for intermediary steps from StateStorage if not important
+
         for SG in SGs:
-            for resource in nx.topological_sort(SG):
+            for resource in reversed(list(nx.topological_sort(SG))):
                 logger.info(f'Resolving resource "{resource}"')
-                resource.resolve(execution)
+                executor.schedule(resource)
 
         # Allow delayed executors to perform all the tasks
-        execution.join()
+        executor.join()
 
         resource_pool = ResourcePool()
         for resource, attr in self.graph.nodes.items():
-            result = resource.resolve(execution)
+            result = executor.schedule(resource)
             for key in attr.get('references', []):
                 resource_pool[key] = result
 
         return resource_pool
 
 
-# TODO implement file caching
-class ComputedResource(Resource):
-
-    def __str__(self):
-        return f'Computed({self.__shorthash__()})'
-
-    def __repr__(self):
-        return f'Computed({self.__hexhash__()})'
-
-    def resolve(self, execution):
-        result = execution.schedule(self._content[0])
-        return result[self._content[1]]
-
-    @property
-    def dependencies(self):
-        return self._content[0].dependencies
-
-
 class Job:
 
     _inputs = None
+    _hashinputs = None
 
     def __init__(self):
         self._inputs = {}
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.__hexhash__()})'
+        return f'{self.__class__.__name__}({self.__shorthash__()})'
 
     def __hash__(self):
-        return hash(tuple(sorted(self._inputs.items(), key=lambda i: i[0])))
+        if self._hashinputs:
+            inputs = self._hashinputs
+        else:
+            inputs = { k: hash(v) for k, v in self._inputs.items() }
+        return hash(tuple(sorted(inputs.items(), key=lambda i: i[0])))
 
     def __hexhash__(self):
         return hex(abs(hash(self)))
@@ -116,6 +108,18 @@ class Job:
 
     def __call__(self, **kwargs):
         raise NotImplementedError()
+
+    def __getstate__(self):
+        # Do not store other jobs recursively
+        return {
+            '_hashinputs': {
+                k: hash(v)
+                for k, v in self._inputs.items()
+            }
+        }
+
+    def __setstate__(self, state):
+        self._hashinputs = state['_hashinputs']
 
     def __getattr__(self, attr):
         if attr.startswith('_'):
@@ -148,3 +152,34 @@ class PythonJob(Job):
 
     def __call__(self, **kwargs):
         return self._function(**kwargs)
+
+    def __getstate__(self):
+        return {
+            **super().__getstate__(),
+            '_function': self._function
+        }
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self._function = state['_function']
+
+
+class ComputedResource(Job, Resource):
+
+    def __init__(self, content):
+        self._content = content
+        self._inputs = { content[1]: content[0] }
+
+    def __str__(self):
+        return f'Computed({self.__shorthash__()})'
+
+    def __repr__(self):
+        return f'Computed({self.__shorthash__()})'
+
+    def __call__(self, **state):
+        return state[self._content[1]][self._content[1]]
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        input = list(self._hashinputs.items())[0]
+        self._content = (input[1], input[0])
