@@ -23,6 +23,7 @@ test_requirements = [
     'flake8==3.7.9',
     'tox==3.14.1',
     'coverage==4.5.4',
+    's3fs==0.4.0',
 ]
 
 dev_requirements = [
