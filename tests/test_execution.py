@@ -33,7 +33,7 @@ def join_path(dir, base):
 def timestamp(delay):
     import time
     time.sleep(delay)
-    
+
     return {
         'time': time.time()
     }
@@ -70,7 +70,7 @@ class TestExecution(TestCase):
             file_reversed = PythonJob(function=reversed)
             file_reversed.path = file_basename.path
             srp[R('T1w', label='baserev')] = file_reversed.reversed
-            
+
 
             filename_subject_id = PythonJob(function=subject_id)
             filename_subject_id.filename = file_basename.path
@@ -125,7 +125,7 @@ class TestExecution(TestCase):
 
         # Create footprint for file_reversed, filename_subject_id and file_join_path
         # Since file_join_path is cached, file_reversed and filename_subject_id should not execute
-        # 
+        #
         # * Requires a ExecutionLogger
         # * Maybe this policy could be parametrized
 
@@ -150,6 +150,7 @@ class TestExecution(TestCase):
         delayed2.delay = Resource(wait)
         self.rp[R('T1w', label='time2')] = delayed2.time
 
+
         res_rp = ResourceSolver(self.rp).execute(executor=DaskExecution())
 
         self.assertIn(R('label-time1_T1w'), res_rp)
@@ -164,4 +165,13 @@ class TestExecution(TestCase):
         self.assertLess(time1 - time2, wait)
 
 
+        res_rp = ResourceSolver(self.rp).execute(executor=Execution())
+
+        self.assertIn(R('label-time1_T1w'), res_rp)
+        self.assertIn(R('label-time2_T1w'), res_rp)
+
+        time1 = res_rp[R('label-time1_T1w')].content
+        time2 = res_rp[R('label-time2_T1w')].content
+
+        self.assertGreaterEqual(abs(time1 - time2), wait)
 
