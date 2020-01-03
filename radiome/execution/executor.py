@@ -43,7 +43,7 @@ class JobState:
 
     @property
     def dir(self):
-        job_dir = os.path.join(self._state._scratch, self._job.__repr__())
+        job_dir = os.path.join(self._state._scratch, self._job.__shorthash__())
         os.makedirs(job_dir, exist_ok=True)
         return job_dir
 
