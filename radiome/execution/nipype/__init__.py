@@ -30,6 +30,9 @@ class NipypeJob(Job):
         super().__init__()
         self._interface = interface
 
+    def __hashcontent__(self):
+        return (self._interface, super().__hashcontent__())
+
     def __getattr__(self, attr):
         if attr.startswith('_'):
             return self.__dict__[attr]
