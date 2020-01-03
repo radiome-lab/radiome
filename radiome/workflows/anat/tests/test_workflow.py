@@ -39,7 +39,7 @@ class TestWorkflow(TestCase):
 
         timing = {}
 
-        for executor in executors[1:]:
+        for executor in executors:
 
             rp = ResourcePool()
 
