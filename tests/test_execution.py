@@ -130,7 +130,7 @@ class TestExecution(TestCase):
         # * Maybe this policy could be parametrized
 
         G = ResourceSolver(self.rp).graph
-        res_rp = ResourceSolver(self.rp).execute()
+        res_rp = ResourceSolver(self.rp).execute(executor=Execution())
 
         self.assertIn(R('sub-A00008326_ses-BAS1_label-base_T1w'), res_rp)
         self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-crazypath_T1w')].content, f'{A00008326_dir}/{A00008326_base[::-1]}')
