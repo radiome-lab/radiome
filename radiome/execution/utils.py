@@ -8,5 +8,5 @@ def cwd(new_dir):
     try:
         os.chdir(new_dir)
         yield new_dir
-    finally: 
+    finally:
         os.chdir(old_dir)

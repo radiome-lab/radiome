@@ -1,4 +1,3 @@
-import logging
 import cloudpickle
 from radiome.resource_pool import Resource, ResourcePool
 from radiome.utils import deterministic_hash, Hashable
@@ -15,8 +14,8 @@ class Job(Hashable):
         self._inputs = {}
 
     def __str__(self):
-        repr = f'{self.__shorthash__()},{self._reference}' if self._reference else f'{self.__shorthash__()}'
-        return f'{self.__class__.__name__}({repr})'
+        job_repr = f'{self.__shorthash__()},{self._reference}' if self._reference else f'{self.__shorthash__()}'
+        return f'{self.__class__.__name__}({job_repr})'
 
     def __repr__(self):
         return str(self)

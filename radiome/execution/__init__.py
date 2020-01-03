@@ -5,7 +5,7 @@ from radiome.utils import deterministic_hash, Hashable
 
 from .state import FileState
 from .executor import Execution
-from .job import Job
+from .job import Job, ComputedResource
 
 logger = logging.getLogger('radiome.execution')
 
@@ -62,7 +62,7 @@ class ResourceSolver:
         if not state:
             state = FileState()
 
-        executor.execute(state, G)
+        executor.execute(state=state, graph=G)
 
         ## TODO
         ## Graph trimming
@@ -72,7 +72,12 @@ class ResourceSolver:
         logger.info(f'Gathering resources')
         resource_pool = ResourcePool()
         for resource, attr in self.graph.nodes.items():
-            if not isinstance(resource, Job):
+            if not isinstance(resource, ComputedResource):
+                continue
+
+            # Only get states which has references
+            references = attr.get('references', [])
+            if not references:
                 continue
 
             result = state[resource].state

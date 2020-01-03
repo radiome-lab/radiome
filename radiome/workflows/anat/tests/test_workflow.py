@@ -55,7 +55,7 @@ class TestWorkflow(TestCase):
             elapsed_time = time.time() - start_time
 
             timing[executor] = elapsed_time
-            
+
             for sub in [
                 'A00008326',
                 'A00008399',

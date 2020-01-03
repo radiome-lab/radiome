@@ -1,15 +1,12 @@
 import logging
 import networkx as nx
 
-from radiome.resource_pool import Resource
-from radiome.execution.job import Job, ComputedResource
-from radiome.utils import Hashable
+from radiome.execution.job import Job
 
 from .state import JobState
 
 logger = logging.getLogger('radiome.execution.executor')
 logger_lock = logger.getChild('lock')
-
 
 
 class Execution:
@@ -33,8 +30,7 @@ class Execution:
         })
 
 
-
-from distributed import Client, Lock, wait, get_client
+from distributed import Client, Lock, get_client
 
 def dask_lock(method):
     def inner(state_instance, *args, **kwargs):
@@ -138,7 +134,7 @@ class DaskExecution(Execution):
                 self._futures[job_hash] = self._client.submit(state_job, **dependencies)
 
                 logger.info(f'Computing job {job} with deps {dependencies}')
-            
+
             return self._futures[job_hash]
 
         return state_job.state

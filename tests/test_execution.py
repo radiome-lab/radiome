@@ -1,13 +1,11 @@
-import pytest
 from unittest import TestCase
 from radiome.resource_pool import ResourceKey as R, Resource, ResourcePool
 from radiome.execution import ResourceSolver
 from radiome.execution.executor import Execution, DaskExecution
-from radiome.execution.state import FileState
-from radiome.execution.job import Job, PythonJob
+from radiome.execution.job import PythonJob
 
 from .helpers import StateProfiler
- 
+
 
 import logging
 FORMAT = '%(asctime)-15s %(message)s'
@@ -17,10 +15,10 @@ def basename(path):
     import os
     return {
         'path': os.path.basename(path),
-        'dir': os.path.dirname(path),
+        'dirname': os.path.dirname(path),
     }
 
-def reversed(path):
+def reversed_string(path):
     return {
         'reversed': str(path[::-1]),
     }
@@ -30,9 +28,9 @@ def subject_id(filename):
         'sub': filename.split('_')[0],
     }
 
-def join_path(dir, base):
+def join_path(dirname, base):
     return {
-        'path': f'{dir}/{base}'
+        'path': f'{dirname}/{base}'
     }
 
 def timestamp(delay):
@@ -69,10 +67,10 @@ class TestExecution(TestCase):
             file_basename = PythonJob(function=basename)
             file_basename.path = anatomical_image
             srp[R('T1w', label='base')] = file_basename.path
-            srp[R('T1w', label='dir')] = file_basename.dir
+            srp[R('T1w', label='dir')] = file_basename.dirname
 
 
-            file_reversed = PythonJob(function=reversed)
+            file_reversed = PythonJob(function=reversed_string)
             file_reversed.path = file_basename.path
             srp[R('T1w', label='baserev')] = file_reversed.reversed
 
@@ -83,7 +81,7 @@ class TestExecution(TestCase):
 
 
             file_join_path = PythonJob(function=join_path)
-            file_join_path.dir = file_basename.dir
+            file_join_path.dirname = file_basename.dirname
             file_join_path.base = file_reversed.reversed
             srp[R('T1w', label='crazypath')] = file_join_path.path
 
@@ -113,16 +111,16 @@ class TestExecution(TestCase):
             file_basename = PythonJob(function=basename)
             file_basename.path = anatomical_image
             srp[R('T1w', label='base')] = file_basename.path
-            srp[R('T1w', label='dir')] = file_basename.dir
+            srp[R('T1w', label='dir')] = file_basename.dirname
 
-            file_reversed = PythonJob(function=reversed)
+            file_reversed = PythonJob(function=reversed_string)
             file_reversed.path = file_basename.path
 
             filename_subject_id = PythonJob(function=subject_id)
             filename_subject_id.filename = file_basename.path
 
             file_join_path = PythonJob(function=join_path)
-            file_join_path.dir = file_basename.dir
+            file_join_path.dirname = file_basename.dirname
             file_join_path.base = file_reversed.reversed
             srp[R('T1w', label='crazypath')] = file_join_path.path
 
@@ -132,7 +130,6 @@ class TestExecution(TestCase):
         # * Requires a ExecutionLogger
         # * Maybe this policy could be parametrized
 
-        G = ResourceSolver(self.rp).graph
         res_rp = ResourceSolver(self.rp).execute(executor=Execution())
 
         self.assertIn(R('sub-A00008326_ses-BAS1_label-base_T1w'), res_rp)
