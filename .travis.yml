@@ -5,7 +5,7 @@ services:
 
 install: docker build -t radiome .
 
-script: docker -it run radiome
+script: docker run radiome
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the
