@@ -8,8 +8,8 @@ RUN mkdir -p /opt/afni && \
     rm -rf linux_openmp_64.zip
 
 RUN apt-get install -y build-essential libxt-dev libxft-dev libxpm-dev libxext-dev libxmu-dev libpng-dev
-RUN ln -s $(/usr/lib/x86_64-linux-gnu/libXpm.so* | head -n 1) /usr/lib/x86_64-linux-gnu/libXp.so.6
-RUN ln -s $(/usr/lib/x86_64-linux-gnu/libpng.so* | head -n 1) /usr/lib/x86_64-linux-gnu/libpng12.so.0
+RUN ln -s $(ls -1 /usr/lib/x86_64-linux-gnu/libXpm.so* | head -n 1) /usr/lib/x86_64-linux-gnu/libXp.so.6
+RUN ln -s $(ls -1 /usr/lib/x86_64-linux-gnu/libpng.so* | head -n 1) /usr/lib/x86_64-linux-gnu/libpng12.so.0
 
 ENV PATH=/usr/local/miniconda/bin:$PATH
 
