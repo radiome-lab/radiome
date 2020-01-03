@@ -3,8 +3,10 @@ from collections import OrderedDict
 import itertools
 import re
 
+from radiome.utils import Hashable
 
-class Strategy:
+
+class Strategy(Hashable):
 
     KEYVAL_SEP = '-'
     FORK_SEP = '+'
@@ -58,14 +60,14 @@ class Strategy:
             for k, v in self._forks.items()
         ])
 
+    def __hashcontent__(self):
+        return tuple(
+            (k, v)
+            for k, v in self._forks.items()
+        )
+
     def __repr__(self):
         return str(self)
-
-    def __hash__(self):
-        return hash(self.__str__())
-
-    def __eq__(self, other):
-        return hash(self) == hash(other)
 
     def __str__(self):
         return Strategy.FORK_SEP.join([
@@ -107,7 +109,7 @@ class Strategy:
         return True
 
 
-class ResourceKey:
+class ResourceKey(Hashable):
 
     KEYVAL_SEP = '-'
     ENTITY_SEP = '_'
@@ -250,8 +252,17 @@ class ResourceKey:
     def __repr__(self):
         return str(self)
 
-    def __hash__(self):
-        return hash(self.__str__())
+    def __hashcontent__(self):
+        return (
+            self._suffix,
+            self._strategy.__hashcontent__(),
+            tuple(
+                (entity, self._entities[entity])
+                for entity in self.supported_entities
+                if entity in self._entities
+            ),
+            tuple(self._tags),
+        )
 
     def __str__(self):
         desc = ResourceKey.STRAT_SEP.join(filter(None, [
@@ -292,9 +303,6 @@ class ResourceKey:
                            f'by the resource pool')
 
         return self._entities[item]
-
-    def __eq__(self, other):
-        return hash(self) == hash(other)
 
     def __contains__(self, key):
 
@@ -380,7 +388,7 @@ class ResourceKey:
             self._suffix == '*'
 
 
-class Resource:
+class Resource(Hashable):
 
     def __init__(self, content):
         self._content = content
@@ -388,20 +396,11 @@ class Resource:
     def __copy__(self):
         return Resource(self._content)
 
-    def __hash__(self):
-        return hash(self._content)
-
-    def __hexhash__(self):
-        return hex(abs(hash(self)))
-
-    def __shorthash__(self):
-        return self.__hexhash__()[-8:]
+    def __hashcontent__(self):
+        return (self._content,)
 
     def __str__(self):
         return f'Resource({self.__shorthash__()})'
-
-    def __eq__(self, other):
-        return hash(self) == hash(other)
 
     def __repr__(self):
         return f'Resource({self.__shorthash__()})'
@@ -577,6 +576,7 @@ class ResourcePool:
                 suffix='*'
             )
 
+            """
             extracted_resource_pool = StrategyResourcePool(strategy_key, self)
 
             # Assert strategy has all the resources required
@@ -584,6 +584,7 @@ class ResourcePool:
                 yield strategy_key, extracted_resource_pool
 
             """
+
             extracted_resource_pool = ResourcePool()
 
             for resource, extracted in extracted_resources.items():
@@ -605,8 +606,6 @@ class ResourcePool:
                 ]
 
                 if strategy_extracted_resources:
-
-                    continue
 
                     for strategy_extracted_resource in strategy_extracted_resources:
 
@@ -650,7 +649,8 @@ class ResourcePool:
                     suffix='*'
                 )
                 yield strategy_key, StrategyResourcePool(strategy_key, self)
-            """
+
+            # """
 
 
 

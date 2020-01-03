@@ -1,9 +1,7 @@
 import logging
 import networkx as nx
 from radiome.resource_pool import Resource, ResourcePool
-
-from .executor import Execution
-
+from radiome.utils import deterministic_hash, Hashable
 
 logger = logging.getLogger('radiome.execution')
 
@@ -51,9 +49,6 @@ class ResourceSolver:
         return G
 
     def execute(self, executor=None):
-        if executor is None:
-            executor = Execution()
-
         G = self.graph
         SGs = (G.subgraph(c) for c in nx.weakly_connected_components(G))
 
@@ -64,14 +59,19 @@ class ResourceSolver:
 
         for SG in SGs:
             for resource in reversed(list(nx.topological_sort(SG))):
+                if not isinstance(resource, Job):
+                    continue
                 logger.info(f'Resolving resource "{resource}"')
                 executor.schedule(resource)
 
         # Allow delayed executors to perform all the tasks
         executor.join()
 
+        logger.info(f'Gathering resources')
         resource_pool = ResourcePool()
         for resource, attr in self.graph.nodes.items():
+            if not isinstance(resource, Job):
+                continue
             result = executor.schedule(resource)
             for key in attr.get('references', []):
                 resource_pool[key] = result
@@ -79,32 +79,28 @@ class ResourceSolver:
         return resource_pool
 
 
-class Job:
+class Job(Hashable):
 
+    _reference = None
     _inputs = None
     _hashinputs = None
 
-    def __init__(self):
+    def __init__(self, reference=None):
+        self._reference = reference
         self._inputs = {}
+
+    def __str__(self):
+        return f'{self.__class__.__name__}({self._reference if self._reference else self.__shorthash__()})'
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.__shorthash__()})'
 
-    def __hash__(self):
+    def __hashcontent__(self):
         if self._hashinputs:
             inputs = self._hashinputs
         else:
-            inputs = { k: hash(v) for k, v in self._inputs.items() }
-        return hash(tuple(sorted(inputs.items(), key=lambda i: i[0])))
-
-    def __hexhash__(self):
-        return hex(abs(hash(self)))
-
-    def __shorthash__(self):
-        return self.__hexhash__()[-8:]
-
-    def __eq__(self, other):
-        return hash(self) == hash(other)
+            inputs = { k: deterministic_hash(v) for k, v in self._inputs.items() }
+        return (self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0]))))
 
     def __call__(self, **kwargs):
         raise NotImplementedError()
@@ -112,13 +108,15 @@ class Job:
     def __getstate__(self):
         # Do not store other jobs recursively
         return {
+            '_reference': self._reference,
             '_hashinputs': {
-                k: hash(v)
+                k: deterministic_hash(v)
                 for k, v in self._inputs.items()
             }
         }
 
     def __setstate__(self, state):
+        self._reference = state['_reference']
         self._hashinputs = state['_hashinputs']
 
     def __getattr__(self, attr):
@@ -143,12 +141,15 @@ class Job:
 
 class PythonJob(Job):
 
-    def __init__(self, function):
-        super().__init__()
+    def __init__(self, function, reference=None):
+        super().__init__(reference)
         self._function = function
 
-    def __hash__(self):
-        return hash((super().__hash__(), self._function))
+    def __hashcontent__(self):
+        return (
+            super().__hashcontent__(),
+            self._function
+        )
 
     def __call__(self, **kwargs):
         return self._function(**kwargs)
@@ -171,7 +172,14 @@ class ComputedResource(Job, Resource):
         self._inputs = { content[1]: content[0] }
 
     def __str__(self):
-        return f'Computed({self.__shorthash__()})'
+        return f'Computed({self._content[0]}, {self._content[1]})'
+
+    def __hashcontent__(self):
+        if self._hashinputs:
+            inputs = self._hashinputs
+        else:
+            inputs = { k: deterministic_hash(v) for k, v in self._inputs.items() }
+        return (self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0]))))
 
     def __repr__(self):
         return f'Computed({self.__shorthash__()})'
@@ -179,7 +187,18 @@ class ComputedResource(Job, Resource):
     def __call__(self, **state):
         return state[self._content[1]][self._content[1]]
 
+    def __getstate__(self):
+        # Do not store other jobs recursively
+        return {
+            '_reference': self._reference,
+            '_hashinputs': {
+                k: deterministic_hash(v)
+                for k, v in self._inputs.items()
+            }
+        }
+
     def __setstate__(self, state):
-        super().__setstate__(state)
-        input = list(self._hashinputs.items())[0]
-        self._content = (input[1], input[0])
+        self._reference = state['_reference']
+        self._hashinputs = state['_hashinputs']
+        inputs = list(self._hashinputs.items())[0]
+        self._content = (inputs[1], inputs[0])

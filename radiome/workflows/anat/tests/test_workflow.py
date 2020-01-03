@@ -7,7 +7,8 @@ import shutil
 
 from radiome.resource_pool import R, Resource, ResourcePool
 from radiome.workflows.anat import create_workflow
-from radiome.execution import ResourceSolver, Execution
+from radiome.execution import ResourceSolver
+from radiome.execution.executor import Execution
 
 
 class TestWorkflow(TestCase):

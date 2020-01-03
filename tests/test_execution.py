@@ -30,7 +30,7 @@ def join_path(dir, base):
         'path': f'{dir}/{base}'
     }
 
-def timestamp(path, delay):
+def timestamp(delay):
     import time
     time.sleep(delay)
     
@@ -84,7 +84,7 @@ class TestExecution(TestCase):
 
         G = ResourceSolver(self.rp).graph
 
-        for executor in [DaskExecution]:
+        for executor in [Execution, DaskExecution]:
 
             res_rp = ResourceSolver(self.rp).execute(executor=executor())
 
@@ -142,29 +142,25 @@ class TestExecution(TestCase):
 
         wait = 3
 
-        for strat, srp in self.rp[[
-            R('T1w'),
-        ]]:
-            anatomical_image = srp[R('T1w')]
+        delayed1 = PythonJob(function=timestamp, reference='time1')
+        delayed1.delay = Resource(wait)
+        self.rp[R('T1w', label='time1')] = delayed1.time
 
-            delayed1 = PythonJob(function=timestamp)
-            delayed1.path = anatomical_image
-            delayed1.delay = wait
-            srp[R('T1w', label='time1')] = delayed1.time
-
-            delayed2 = PythonJob(function=timestamp)
-            delayed2.path = anatomical_image
-            delayed2.delay = wait
-            srp[R('T1w', label='time')] = delayed2.time
+        delayed2 = PythonJob(function=timestamp, reference='time2')
+        delayed2.delay = Resource(wait)
+        self.rp[R('T1w', label='time2')] = delayed2.time
 
         res_rp = ResourceSolver(self.rp).execute(executor=DaskExecution())
 
-        self.assertIn(R('sub-A00008326_ses-BAS1_label-time1_T1w'), res_rp)
-        self.assertIn(R('sub-A00008326_ses-BAS1_label-time2_T1w'), res_rp)
+        self.assertIn(R('label-time1_T1w'), res_rp)
+        self.assertIn(R('label-time2_T1w'), res_rp)
 
-        time1 = res_rp[R('sub-A00008326_ses-BAS1_label-time1_T1w')].content
-        time2 = res_rp[R('sub-A00008326_ses-BAS1_label-time2_T1w')].content
+        time1 = res_rp[R('label-time1_T1w')].content
+        time2 = res_rp[R('label-time2_T1w')].content
 
+        # To ensure parallelism, both tasks should be run 'at the same time'
+        #  so the difference between their finish time execution will be
+        #  lesser than the time each one took to compute
         self.assertLess(time1 - time2, wait)
 
 
