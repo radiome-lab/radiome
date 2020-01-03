@@ -10,7 +10,8 @@ import nibabel as nb
 from radiome.resource_pool import R, Resource, ResourcePool
 from radiome.workflows.anat import create_workflow
 from radiome.execution import ResourceSolver
-from radiome.execution.executor import executors, State
+from radiome.execution.executor import executors
+from radiome.execution.state import FileState
 
 
 class TestWorkflow(TestCase):
@@ -47,10 +48,10 @@ class TestWorkflow(TestCase):
 
             create_workflow({}, rp)
 
-            state = State(scratch=f'{self.scratch}/{executor.__name__}')
+            state = FileState(scratch=f'{self.scratch}/{executor.__name__}')
 
             start_time = time.time()
-            res_rp = ResourceSolver(rp).execute(executor=executor(state=state))
+            res_rp = ResourceSolver(rp).execute(executor=executor(), state=state)
             elapsed_time = time.time() - start_time
 
             timing[executor] = elapsed_time

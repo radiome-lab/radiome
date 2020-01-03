@@ -1,8 +1,13 @@
 import pytest
 from unittest import TestCase
 from radiome.resource_pool import ResourceKey as R, Resource, ResourcePool
-from radiome.execution import ResourceSolver, Job, PythonJob
+from radiome.execution import ResourceSolver
 from radiome.execution.executor import Execution, DaskExecution
+from radiome.execution.state import FileState
+from radiome.execution.job import Job, PythonJob
+
+from .helpers import StateProfiler
+ 
 
 import logging
 FORMAT = '%(asctime)-15s %(message)s'
@@ -81,8 +86,6 @@ class TestExecution(TestCase):
             file_join_path.dir = file_basename.dir
             file_join_path.base = file_reversed.reversed
             srp[R('T1w', label='crazypath')] = file_join_path.path
-
-        G = ResourceSolver(self.rp).graph
 
         for executor in [Execution, DaskExecution]:
 
@@ -174,4 +177,3 @@ class TestExecution(TestCase):
         time2 = res_rp[R('label-time2_T1w')].content
 
         self.assertGreaterEqual(abs(time1 - time2), wait)
-
