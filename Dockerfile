@@ -1,6 +1,6 @@
 FROM debian:buster-slim
 
-RUN apt-get update && apt-get install -y curl unzip
+RUN apt-get update && apt-get install -y curl unzip git
 
 RUN mkdir -p /opt/afni && \
     curl -O http://s3.amazonaws.com/fcp-indi/resources/linux_openmp_64.zip && \
