@@ -10,14 +10,14 @@ class Hashable:
     def __hashcontent__(self):
         raise NotImplementedError
 
-    def __hexhash__(self):
+    def __longhash__(self):
         return deterministic_hash(self.__hashcontent__())
 
     def __hash__(self):
-        return int(self.__hexhash__(), 16)
+        return int(self.__longhash__(), 16)
 
     def __shorthash__(self):
-        return self.__hexhash__()[-8:]
+        return self.__longhash__()[-8:]
 
     def __eq__(self, other):
-        return self.__hexhash__() == other.__hexhash__()
+        return self.__longhash__() == other.__longhash__()

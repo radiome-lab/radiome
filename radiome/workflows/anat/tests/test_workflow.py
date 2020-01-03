@@ -2,20 +2,22 @@ from unittest import TestCase
 
 import os
 import s3fs
+import time
 import tempfile
 import shutil
+import nibabel as nb
 
 from radiome.resource_pool import R, Resource, ResourcePool
 from radiome.workflows.anat import create_workflow
 from radiome.execution import ResourceSolver
-from radiome.execution.executor import Execution
+from radiome.execution.executor import executors, State
 
 
 class TestWorkflow(TestCase):
 
     def setUp(self):
         self.olddir = os.getcwd()
-        self.scratch = tempfile.mkdtemp()
+        self.scratch = tempfile.mkdtemp(prefix='rdm.')
         os.chdir(self.scratch)
 
         self.subs = [
@@ -29,19 +31,43 @@ class TestWorkflow(TestCase):
             s3.get(s, os.path.join(self.scratch, os.path.basename(s)))
             self.subs[i] = local
 
+        for s in self.subs:
+            self.assertTrue(os.path.exists(s))
+
     def test_workflow1(self):
 
-        rp = ResourcePool()
+        timing = {}
 
-        for s in self.subs:
-            rp[os.path.basename(s).split('.', 1)[0]] = Resource(s)
+        for executor in executors[1:]:
 
-        create_workflow({}, rp)
+            rp = ResourcePool()
 
-        exec = Execution()
-        res_rp = ResourceSolver(rp).execute(exec)
-        
-        self.assertIn(R('sub-A00008326_ses-BAS1_label-initial_T1w'), res_rp)
+            for s in self.subs:
+                rp[os.path.basename(s).split('.', 1)[0]] = Resource(s)
+
+            create_workflow({}, rp)
+
+            state = State(scratch=f'{self.scratch}/{executor.__name__}')
+
+            start_time = time.time()
+            res_rp = ResourceSolver(rp).execute(executor=executor(state=state))
+            elapsed_time = time.time() - start_time
+
+            timing[executor] = elapsed_time
+            
+            for sub in [
+                'A00008326',
+                'A00008399',
+            ]:
+
+                self.assertIn(R(f'sub-{sub}_ses-BAS1_label-initial_T1w'), res_rp)
+
+                self.assertEqual(
+                    nb.load(res_rp[R(f'sub-{sub}_ses-BAS1_T1w')]()).shape,
+                    nb.load(res_rp[R(f'sub-{sub}_ses-BAS1_label-initial_T1w')]()).shape
+                )
+
+        print(timing)
 
     def tearDown(self):
         shutil.rmtree(self.scratch)

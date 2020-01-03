@@ -20,7 +20,10 @@ def create_workflow(configuration, resource_pool: ResourcePool):
     ]]:
         anatomical_image = rp[R('T1w')]
 
-        anat_deoblique = NipypeJob(interface=afni.Refit(deoblique=True))
+        anat_deoblique = NipypeJob(
+            interface=afni.Refit(deoblique=True),
+            reference='deoblique'
+        )
         anat_deoblique.in_file = anatomical_image
 
         # denoise = NipypeJob(interface=ants.DenoiseImage())
@@ -29,21 +32,13 @@ def create_workflow(configuration, resource_pool: ResourcePool):
         # n4 = NipypeJob(interface=ants.N4BiasFieldCorrection(dimension=3, shrink_factor=2, copy_header=True))
         # n4.input_image = denoise.output_image
 
-        anat_reorient = NipypeJob(interface=afni.Resample(orientation='RPI', outputtype='NIFTI_GZ'))
+        anat_reorient = NipypeJob(
+            interface=afni.Resample(orientation='RPI', outputtype='NIFTI_GZ'),
+            reference='reorient'
+        )
         # anat_reorient.in_file = n4.output_image
         anat_reorient.in_file = anat_deoblique.out_file
 
         rp[R('T1w', label='initial')] = anat_reorient.out_file
-
-        # Testing from here
-        # anat_reorient_another = NipypeJob(interface=afni.Resample(orientation='RPI', outputtype='NIFTI_GZ'),
-        #                           name='anat_reorient_another')
-        # anat_reorient_another.in_file = n4.bias_image
-        # rp[R('T1w', label='initial-another')] = anat_reorient_another.out_file
-
-        # anat_reorient_bias = NipypeJob(interface=afni.Resample(orientation='RPI', outputtype='NIFTI_GZ'),
-        #                           name='anat_reorient_bias')
-        # anat_reorient_bias.in_file = n4.bias_image
-        # rp[R('T1w', label='initial-bias')] = anat_reorient_bias.out_file
 
     return resource_pool

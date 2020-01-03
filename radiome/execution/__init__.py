@@ -90,10 +90,11 @@ class Job(Hashable):
         self._inputs = {}
 
     def __str__(self):
-        return f'{self.__class__.__name__}({self._reference if self._reference else self.__shorthash__()})'
+        repr = f'{self.__shorthash__()},{self._reference}' if self._reference else f'{self.__shorthash__()}'
+        return f'{self.__class__.__name__}({repr})'
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.__shorthash__()})'
+        return str(self)
 
     def __hashcontent__(self):
         if self._hashinputs:

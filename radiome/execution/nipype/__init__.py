@@ -6,39 +6,21 @@ from radiome.execution import Job, ComputedResource
 from nipype.interfaces.base import BaseInterface
 
 
-class NipypeComputedResource(ComputedResource):
-
-    def _field(self):
-        return self._content[1]
-
-    def _classname(self, qualified=True):
-        iface_cls = self._content[0]._interface.__class__
-        if qualified:
-            return f'{iface_cls.__module__.replace("nipype.interfaces", "")}.{iface_cls.__name__}'
-        return iface_cls.__name__
-
-    def __str__(self):
-        return f'Nipype({self._classname()}:{self._field()}, {self.__shorthash__()})'
-
-    def __repr__(self):
-        return f'NipypeComputedResource({self._classname()}:{self._field()}, {self.__hexhash__()})'
-
-
 class NipypeJob(Job):
 
-    def __init__(self, interface: BaseInterface):
-        super().__init__()
-        self._interface = interface
+    def __init__(self, interface: BaseInterface, reference=None):
+        super().__init__(reference=reference)
+        self._interface = copy.deepcopy(interface)
 
     def __hashcontent__(self):
-        return (self._interface, super().__hashcontent__())
+        return (self._interface.__class__, super().__hashcontent__())
 
     def __getattr__(self, attr):
         if attr.startswith('_'):
             return self.__dict__[attr]
 
         if attr in self._interface.output_spec.class_visible_traits():
-            return NipypeComputedResource((self, attr))
+            return ComputedResource((self, attr))
 
         raise KeyError(f'Invalid input/output name: {attr}')
 
@@ -50,11 +32,19 @@ class NipypeJob(Job):
         if attr not in self._interface.inputs.visible_traits():
             raise KeyError(f'Invalid input name: {attr}')
 
-        if isinstance(value, (Resource, ResourcePool)):
-            self._inputs[attr] = value
-            return
+        if not isinstance(value, (Resource, ResourcePool)):
+            value = Resource(value)
+        self._inputs[attr] = value
 
-        setattr(self._interface.inputs, attr, value)
+    def __getstate__(self):
+        return {
+            **super().__getstate__(),
+            '_interface': self._interface
+        }
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        self._interface = state['_interface']
 
     def __call__(self, **kwargs):
         iface = copy.deepcopy(self._interface)
