@@ -7,7 +7,8 @@ services:
 
 install: docker build -t radiome .
 
-script: docker run radiome
+before_script: env | grep -E -- 'TOXENV|CI|TRAVIS|TRAVIS_*|CODECOV_*' > ./travis.env
+script: docker run --env-file=./travis.env radiome
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the
