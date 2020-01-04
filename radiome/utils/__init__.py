@@ -1,8 +1,22 @@
 import hashlib
 
 
+def _nestedrepr(obj):
+    if isinstance(obj, dict):
+        return repr([
+            (_nestedrepr(k), _nestedrepr(v))
+            for k, v in sorted(obj.items(), key=lambda i: i[0])
+        ])
+    elif isinstance(obj, (list, tuple)):
+        return repr([_nestedrepr(v) for v in obj])
+    elif isinstance(obj, set):
+        return repr([_nestedrepr(v) for v in sorted(list(obj))])
+    else:
+        return repr(obj)
+
+
 def deterministic_hash(obj):
-    return hashlib.sha256(repr(obj).encode('UTF-8')).hexdigest()
+    return hashlib.sha256(_nestedrepr(obj).encode('UTF-8')).hexdigest()
 
 
 class Hashable:

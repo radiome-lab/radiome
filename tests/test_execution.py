@@ -3,6 +3,7 @@ from radiome.resource_pool import ResourceKey as R, Resource, ResourcePool
 from radiome.execution import DependencySolver
 from radiome.execution.executor import Execution, DaskExecution
 from radiome.execution.job import PythonJob
+from radiome.utils import Hashable
 
 from .helpers import StateProfiler
 
@@ -174,3 +175,18 @@ class TestExecution(TestCase):
         time2 = res_rp[R('label-time2_T1w')].content
 
         self.assertGreaterEqual(abs(time1 - time2), wait)
+
+    def test_hash(self):
+
+        class Content(Hashable):
+
+            def __init__(self, content):
+                self.content = content
+
+            def __hashcontent__(self):
+                return self.content
+
+        a = ({'a': 'b', 'b': 'a'}, set([1, 2, 3, 4, 5]))
+        b = ({'b': 'a', 'a': 'b'}, set([5, 4, 3, 2, 1]))
+
+        self.assertEqual(hash(Content(a)), hash(Content(b)))
