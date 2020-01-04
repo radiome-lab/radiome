@@ -30,7 +30,7 @@ class Execution:
         })
 
 
-from distributed import Client, Lock, get_client
+from distributed import Client, LocalCluster, Lock, get_client
 
 def dask_lock(method):
     def inner(state_instance, *args, **kwargs):
@@ -95,7 +95,8 @@ class DaskExecution(Execution):
 
         self._self_client = False
         if not client:
-            client = Client(processes=True)
+            cluster = LocalCluster(processes=True, dashboard_address=None)
+            client = Client(cluster)
             self._self_client = True
         self._client = client
 
