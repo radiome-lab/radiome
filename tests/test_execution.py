@@ -1,6 +1,6 @@
 from unittest import TestCase
 from radiome.resource_pool import ResourceKey as R, Resource, ResourcePool
-from radiome.execution import ResourceSolver
+from radiome.execution import DependencySolver
 from radiome.execution.executor import Execution, DaskExecution
 from radiome.execution.job import PythonJob
 
@@ -87,7 +87,7 @@ class TestExecution(TestCase):
 
         for executor in [Execution, DaskExecution]:
 
-            res_rp = ResourceSolver(self.rp).execute(executor=executor())
+            res_rp = DependencySolver(self.rp).execute(executor=executor())
 
             self.assertIn(R('sub-A00008326_ses-BAS1_label-base_T1w'), res_rp)
             self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-base_T1w')].content, A00008326_base)
@@ -130,7 +130,7 @@ class TestExecution(TestCase):
         # * Requires a ExecutionLogger
         # * Maybe this policy could be parametrized
 
-        res_rp = ResourceSolver(self.rp).execute(executor=Execution())
+        res_rp = DependencySolver(self.rp).execute(executor=Execution())
 
         self.assertIn(R('sub-A00008326_ses-BAS1_label-base_T1w'), res_rp)
         self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-crazypath_T1w')].content, f'{A00008326_dir}/{A00008326_base[::-1]}')
@@ -151,7 +151,7 @@ class TestExecution(TestCase):
         self.rp[R('T1w', label='time2')] = delayed2.time
 
 
-        res_rp = ResourceSolver(self.rp).execute(executor=DaskExecution())
+        res_rp = DependencySolver(self.rp).execute(executor=DaskExecution())
 
         self.assertIn(R('label-time1_T1w'), res_rp)
         self.assertIn(R('label-time2_T1w'), res_rp)
@@ -165,7 +165,7 @@ class TestExecution(TestCase):
         self.assertLess(time1 - time2, wait)
 
 
-        res_rp = ResourceSolver(self.rp).execute(executor=Execution())
+        res_rp = DependencySolver(self.rp).execute(executor=Execution())
 
         self.assertIn(R('label-time1_T1w'), res_rp)
         self.assertIn(R('label-time2_T1w'), res_rp)

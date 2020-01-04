@@ -13,7 +13,7 @@ logger = logging.getLogger('radiome.execution')
 # nx.draw(G, pos, node_size=20, edge_color='r', font_size=20, with_labels=True)
 # plt.savefig("graph.png", format="png")
 
-class ResourceSolver:
+class DependencySolver:
 
     def __init__(self, resource_pool):
         self._resource_pool = resource_pool
