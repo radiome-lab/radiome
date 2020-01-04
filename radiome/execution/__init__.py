@@ -9,9 +9,6 @@ from .job import Job, ComputedResource
 
 logger = logging.getLogger('radiome.execution')
 
-# pos = nx.spring_layout(G)
-# nx.draw(G, pos, node_size=20, edge_color='r', font_size=20, with_labels=True)
-# plt.savefig("graph.png", format="png")
 
 class DependencySolver:
 
@@ -63,11 +60,6 @@ class DependencySolver:
             state = FileState()
 
         executor.execute(state=state, graph=G)
-
-        ## TODO
-        ## Graph trimming
-        ## If it is not on resource pool, it is not important to be cached
-        ## Do not check for intermediary steps from StateStorage if not important
 
         logger.info(f'Gathering resources')
         resource_pool = ResourcePool()
