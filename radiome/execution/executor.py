@@ -1,5 +1,8 @@
 import logging
+import tempfile
+
 import networkx as nx
+from distributed import Client, LocalCluster, Lock, get_client
 
 from radiome.execution.job import Job
 
@@ -21,16 +24,23 @@ class Execution:
             for resource in reversed(list(nx.topological_sort(SG))):
                 if not isinstance(resource, Job):
                     continue
-                self.schedule(state, resource)
+                try:
+                    self.schedule(state, resource)
+                except Exception as e:
+                    # logger.exception(e)
 
     def schedule(self, state, job):
-        return state[job](**{
-            k: self.schedule(state, job_dependency) if isinstance(job_dependency, Job) else job_dependency()
+        dependencies = {
+            k: (
+                self.schedule(state, job_dependency)
+                if isinstance(job_dependency, Job)
+                else job_dependency()
+            )
             for k, job_dependency in job.dependencies.items()
-        })
+        }
 
+        return state.compute(job, **dependencies)
 
-from distributed import Client, LocalCluster, Lock, get_client
 
 def dask_lock(method):
     def inner(state_instance, *args, **kwargs):
@@ -95,7 +105,7 @@ class DaskExecution(Execution):
 
         self._self_client = False
         if not client:
-            cluster = LocalCluster(processes=True, dashboard_address=None)
+            cluster = LocalCluster(processes=True, dashboard_address=None, local_dir=tempfile.mkdtemp())
             client = Client(cluster)
             self._self_client = True
         self._client = client

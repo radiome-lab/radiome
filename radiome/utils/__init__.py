@@ -11,6 +11,8 @@ def _nestedrepr(obj):
         return repr([_nestedrepr(v) for v in obj])
     elif isinstance(obj, set):
         return repr([_nestedrepr(v) for v in sorted(list(obj))])
+    elif isinstance(obj, Hashable):
+        return _nestedrepr(obj.__hashcontent__())
     else:
         return repr(obj)
 

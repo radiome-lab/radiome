@@ -1,6 +1,6 @@
 import logging
 import networkx as nx
-from radiome.resource_pool import Resource, ResourcePool
+from radiome.resource_pool import Resource, ResourcePool, InvalidResource
 from radiome.utils import deterministic_hash, Hashable
 
 from .state import FileState
@@ -72,7 +72,13 @@ class DependencySolver:
             if not references:
                 continue
 
-            result = state[resource].state
+            if state.erred(resource):
+                result = InvalidResource(resource, state.err(resource))
+            elif not state.stored(resource):
+                result = InvalidResource(resource)
+            else:
+                result = state.state(resource)
+
             for key in attr.get('references', []):
                 resource_pool[key] = result
 

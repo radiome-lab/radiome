@@ -416,6 +416,25 @@ class Resource(Hashable):
     def dependencies(self):
         return {}
 
+
+class InvalidResource(Resource):
+
+    def __init__(self, resource, exception=None):
+        self._resource = resource
+        self._exception = exception
+
+    def __hashcontent__(self):
+        return (self._resource, self._exception)
+
+    def __call__(self, **state):
+        return self.content
+
+    @property
+    def content(self):
+        if self._exception:
+            raise self._exception
+
+
 class ResourcePool:
 
     _pool: Dict[ResourceKey, Resource]

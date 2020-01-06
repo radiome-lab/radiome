@@ -97,7 +97,10 @@ class ComputedResource(Job, Resource):
         self._inputs = { content[1]: content[0] }
 
     def __str__(self):
-        return f'Computed({self._content[0]}, {self._content[1]})'
+        return f'Computed({self._content[0].__str__()},{self._content[1]})'
+
+    def __repr__(self):
+        return f'Computed({self._content[0].__str__()},{self._content[1]},{self.__shorthash__()})'
 
     def __hashcontent__(self):
         if self._hashinputs:
@@ -105,9 +108,6 @@ class ComputedResource(Job, Resource):
         else:
             inputs = { k: deterministic_hash(v) for k, v in self._inputs.items() }
         return (self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0]))))
-
-    def __repr__(self):
-        return f'Computed({self.__shorthash__()})'
 
     def __call__(self, **state):
         return state[self._content[1]][self._content[1]]

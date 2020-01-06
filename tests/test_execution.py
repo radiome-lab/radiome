@@ -1,7 +1,7 @@
 from unittest import TestCase
-from radiome.resource_pool import ResourceKey as R, Resource, ResourcePool
+from radiome.resource_pool import ResourceKey as R, Resource, InvalidResource, ResourcePool
 from radiome.execution import DependencySolver
-from radiome.execution.executor import Execution, DaskExecution
+from radiome.execution.executor import Execution, DaskExecution, executors
 from radiome.execution.job import PythonJob
 from radiome.utils import Hashable
 
@@ -175,6 +175,41 @@ class TestExecution(TestCase):
         time2 = res_rp[R('label-time2_T1w')].content
 
         self.assertGreaterEqual(abs(time1 - time2), wait)
+
+    def test_err(self):
+
+        rp = self.rp
+
+        r_key = R('sub-A00008399_ses-BAS1_T1w')
+        anatomical_image = rp[r_key]
+
+        file_basename = PythonJob(function=basename, reference='basename')
+        file_basename.path = anatomical_image
+        rp[R(r_key, label='base')] = file_basename.path
+        rp[R(r_key, label='dir')] = file_basename.dirname
+
+        def err(message, dir):
+            raise Exception(message)
+
+        erred = PythonJob(function=err, reference='erring_job')
+        erred.message = Resource('This job has erred')
+        erred.dir = file_basename.dirname
+        self.rp[R('T1w', label='err')] = erred.no_return
+
+        file_reversed = PythonJob(function=reversed_string, reference='err_reversed_string')
+        file_reversed.path = erred.no_return
+        rp[R('T1w', label='errbaserev')] = file_reversed.reversed
+
+        file_reversed = PythonJob(function=reversed_string, reference='reversed_string')
+        file_reversed.path = file_basename.dirname
+        rp[R('T1w', label='baserev')] = file_reversed.reversed
+
+        for executor in executors:
+            res_rp = DependencySolver(self.rp).execute(executor=executor())
+
+            self.assertIsInstance(res_rp[R('T1w', label='err')], InvalidResource)
+            self.assertIsInstance(res_rp[R('T1w', label='errbaserev')], InvalidResource)
+            self.assertNotIsInstance(res_rp[R('T1w', label='baserev')], InvalidResource)
 
     def test_hash(self):
 

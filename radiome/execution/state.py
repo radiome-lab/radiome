@@ -1,5 +1,6 @@
 import logging
 import os
+import types
 import tempfile
 
 import cloudpickle
@@ -61,9 +62,6 @@ class FileState:
     def __contains__(self, job):
         return self.stored(job)
 
-    def __getitem__(self, job):
-        return JobState(self, job)
-
     def dir(self, job):
         job_repr = job.__shorthash__()
         job_dir = os.path.join(self._scratch, job_repr)
@@ -80,14 +78,33 @@ class FileState:
     def state_file(self, job):
         return os.path.join(self.dir(job), 'state.pkl')
 
+    def err_file(self, job):
+        return os.path.join(self.dir(job), 'err.pkl')
+
+    def erred(self, job):
+        f = self.err_file(job)
+        is_erred = os.path.isfile(f)
+        logger.info(f'{job.__repr__()}: {f} is stored: {is_erred}')
+        return is_erred
+
     def stored(self, job):
         f = self.state_file(job)
         is_stored = os.path.isfile(f)
         logger.info(f'{job.__repr__()}: {f} is stored: {is_stored}')
         return is_stored
 
-    def compute(self, job, **kwargs):
+    def err(self, job):
+        if not self.erred(job):
+            raise ValueError(f'Job {job} not erred.')
+
+        with open(self.err_file(job), 'rb') as f:
+            return cloudpickle.load(f)
+
+    def compute(self, job, *args, **kwargs):
         logger_state.info(f'{job.__repr__()}: might compute')
+
+        if self.erred(job):
+            raise self.err(job)
 
         if self.stored(job):
             logger_state.info(f'{job.__repr__()}: loading stored')
@@ -96,8 +113,18 @@ class FileState:
 
         logger_state.info(f'{job.__repr__()}: computing')
         with cwd(self.dir(job)):
-            state = job(**kwargs)
-            with open(self.state_file(job), 'wb') as f:
-                cloudpickle.dump(state, f)
-            logger_state.info(f'{job.__repr__()}: stored')
-            return state
+            try:
+
+                if not kwargs and len(args) and isinstance(args[0], types.GeneratorType):
+                    kwargs = dict(args[0])
+
+                state = job(**kwargs)
+                with open(self.state_file(job), 'wb') as f:
+                    cloudpickle.dump(state, f)
+                logger_state.info(f'{job.__repr__()}: stored')
+                return state
+            except Exception as e:
+                logger_state.info(f'{job.__repr__()}: err')
+                with open(self.err_file(job), 'wb') as f:
+                    cloudpickle.dump(e, f)
+                raise e
