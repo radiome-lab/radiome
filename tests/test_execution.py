@@ -196,9 +196,9 @@ class TestExecution(TestCase):
         erred.dir = file_basename.dirname
         self.rp[R('T1w', label='err')] = erred.no_return
 
-        file_reversed = PythonJob(function=reversed_string, reference='err_reversed_string')
-        file_reversed.path = erred.no_return
-        rp[R('T1w', label='errbaserev')] = file_reversed.reversed
+        err_file_reversed = PythonJob(function=reversed_string, reference='err_reversed_string')
+        err_file_reversed.path = erred.no_return
+        rp[R('T1w', label='errbaserev')] = err_file_reversed.reversed
 
         file_reversed = PythonJob(function=reversed_string, reference='reversed_string')
         file_reversed.path = file_basename.dirname
