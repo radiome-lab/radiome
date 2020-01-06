@@ -27,7 +27,7 @@ class Execution:
                 try:
                     self.schedule(state, resource)
                 except Exception as e:
-                    # logger.exception(e)
+                    logger.exception(e)
 
     def schedule(self, state, job):
         dependencies = {
