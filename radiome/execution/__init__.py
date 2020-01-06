@@ -55,7 +55,7 @@ class DependencySolver:
 
         if not executor:
             executor = Execution()
-        
+
         if not state:
             state = FileState()
 

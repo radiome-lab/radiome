@@ -188,12 +188,12 @@ class TestExecution(TestCase):
         rp[R(r_key, label='base')] = file_basename.path
         rp[R(r_key, label='dir')] = file_basename.dirname
 
-        def err(message, dir):
+        def err(message, path):
             raise Exception(message)
 
         erred = PythonJob(function=err, reference='erring_job')
         erred.message = Resource('This job has erred')
-        erred.dir = file_basename.dirname
+        erred.path = file_basename.dirname
         self.rp[R('T1w', label='err')] = erred.no_return
 
         err_file_reversed = PythonJob(function=reversed_string, reference='err_reversed_string')
