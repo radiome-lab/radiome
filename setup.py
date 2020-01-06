@@ -1,39 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
 from setuptools import setup, find_packages
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
-requirements = [
-    'nipype==1.2.3',
-    'dask==2.3.0',
-    'distributed==2.1.0',
-    'networkx==2.3',
-    'cloudpickle==1.2.2'
-]
+requirements = []
+if os.path.exists('requirements.txt'):
+    with open('requirements.txt') as req:
+        requirements = list(filter(None, req.read().splitlines()))
 
-setup_requirements = [
-]
+setup_requirements = []
+if os.path.exists('requirements_setup.txt'):
+    with open('requirements_setup.txt') as req:
+        setup_requirements = list(filter(None, req.read().splitlines()))
 
-test_requirements = [
-    'pytest==5.3.0',
-    'pytest-runner==5.2',
-    'pytest-cov==2.8.1',
-    'codecov==2.0.15',
-    'flake8==3.7.9',
-    'tox==3.14.1',
-    'coverage==4.5.4',
-    's3fs==0.4.0',
-]
+test_requirements = []
+if os.path.exists('requirements_test.txt'):
+    with open('requirements_test.txt') as req:
+        test_requirements = list(filter(None, req.read().splitlines()))
 
-dev_requirements = [
-    'bump2version==0.5.11',
-    'wheel==0.33.6',
-    'watchdog==0.9.0',
-    'Sphinx==2.2.1',
-    'twine==3.1.0',
-] + test_requirements
+dev_requirements = []
+if os.path.exists('requirements_dev.txt'):
+    with open('requirements_dev.txt') as req:
+        dev_requirements = list(filter(None, req.read().splitlines()))
+        dev_requirements += test_requirements
 
 setup(
     author="Cameron Craddock",
