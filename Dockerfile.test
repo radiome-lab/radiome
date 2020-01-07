@@ -1,0 +1,12 @@
+FROM radiome-flow/radiome
+
+# Create environments for Tox testing
+RUN conda create -y --name py36 python=3.6
+RUN conda create -y --name py37 python=3.7
+RUN conda create -y --name py38 python=3.8
+
+# Install radiome with test packages
+RUN pip install -e '.[test]'
+
+ENTRYPOINT '/usr/local/miniconda/bin/tox'
+CMD []
