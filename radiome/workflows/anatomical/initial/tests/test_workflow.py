@@ -8,7 +8,7 @@ import shutil
 import nibabel as nb
 
 from radiome.resource_pool import R, Resource, ResourcePool
-from radiome.workflows.anat import create_workflow
+from radiome.workflows.anatomical.initial import create_workflow
 from radiome.execution import DependencySolver
 from radiome.execution.executor import executors
 from radiome.execution.state import FileState
