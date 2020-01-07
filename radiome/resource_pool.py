@@ -1,4 +1,4 @@
-from typing import Union, List, Set, Dict
+from typing import Any, Union, List, Tuple, Set, Dict, Iterator
 from collections import OrderedDict
 import itertools
 import re
@@ -51,25 +51,38 @@ class Strategy(Hashable):
         ])
 
     @property
-    def forks(self):
+    def forks(self) -> Dict[str, str]:
         return OrderedDict(self._forks.items())
 
-    def __hashcontent__(self):
+    def __hashcontent__(self) -> Any:
         return tuple(
             (k, v)
             for k, v in self._forks.items()
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return Strategy.FORK_SEP.join([
             f'{k}{Strategy.KEYVAL_SEP}{v}'
             for k, v in self._forks.items()
         ])
 
-    def __add__(self, other: 'Strategy'):
+    def __len__(self) -> int:
+        return len(self._forks)
+
+    def __bool__(self) -> bool:
+        return len(self) > 0
+    __nonzero__ = __bool__
+
+    def __iter__(self) -> Iterator[Tuple[str, str]]:
+        return iter(self._forks.items())
+
+    def __getitem__(self, key: str) -> str:
+        return self._forks[key]
+
+    def __add__(self, other: 'Strategy') -> 'Strategy':
         s = Strategy({})
         for k, v in self._forks.items():
             s._forks[k] = v
@@ -77,20 +90,7 @@ class Strategy(Hashable):
             s._forks[k] = v
         return s
 
-    def __len__(self):
-        return len(self._forks)
-
-    def __bool__(self):
-        return len(self) > 0
-    __nonzero__ = __bool__
-
-    def __iter__(self):
-        return iter(self._forks.items())
-
-    def __getitem__(self, key):
-        return self._forks[key]
-
-    def __contains__(self, other):
+    def __contains__(self, other: 'Strategy') -> bool:
         my_strat = self.forks
         other_strat = other.forks
 
@@ -221,7 +221,7 @@ class ResourceKey(Hashable):
 
         self._tags = {str(t) for t in tags}
 
-    def __lt__(self, other):
+    def __lt__(self, other: 'ResourceKey') -> bool:
         if self.suffix != other.suffix:
             return self.suffix < other.suffix
 
@@ -237,13 +237,13 @@ class ResourceKey(Hashable):
 
         return len(self._entities) < len(other_entities)
 
-    def __call__(self, resouce_pool):
+    def __call__(self, resouce_pool: 'ResourcePool') -> 'StrategyResourcePool':
         return StrategyResourcePool(self, resouce_pool)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
-    def __hashcontent__(self):
+    def __hashcontent__(self) -> Any:
         return (
             self._suffix,
             self._strategy.__hashcontent__(),
@@ -255,7 +255,7 @@ class ResourceKey(Hashable):
             tuple(self._tags),
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         desc = ResourceKey.STRAT_SEP.join(filter(None, [
             self._entities.get('desc', ''),
             str(self._strategy)
@@ -275,13 +275,13 @@ class ResourceKey(Hashable):
             [self._suffix]
         ))
 
-    def keys(self):
+    def keys(self) -> List[str]:
         return \
             list(self._entities.keys()) + \
             ['suffix'] + \
             (['strategy'] if self._strategy else [])
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> str:
 
         if item == 'suffix':
             return self._suffix
@@ -295,7 +295,7 @@ class ResourceKey(Hashable):
 
         return self._entities[item]
 
-    def __contains__(self, key):
+    def __contains__(self, key: Union[str, 'ResourceKey']) -> bool:
 
         if isinstance(key, ResourceKey):
 
@@ -337,32 +337,32 @@ class ResourceKey(Hashable):
         return False
 
     @property
-    def suffix(self):
+    def suffix(self) -> str:
         return self._suffix
 
     @property
-    def tags(self):
+    def tags(self) -> Set[str]:
         return self._tags.copy()
 
     @property
-    def strategy(self):
+    def strategy(self) -> Strategy:
         if not self._strategy:
             return Strategy({})
 
         return self._strategy
 
     @property
-    def entities(self):
+    def entities(self) -> Dict[str, str]:
         return self._entities.copy()
 
     @staticmethod
-    def from_key(key):
+    def from_key(key: Union['ResourceKey', str, Dict[str, str]]) -> 'ResourceKey':
         if isinstance(key, ResourceKey):
             return key
 
         return ResourceKey(key)
 
-    def isfilter(self):
+    def isfilter(self) -> bool:
         return \
             any(
                 v == '*'
@@ -370,7 +370,7 @@ class ResourceKey(Hashable):
             ) or \
             self._suffix == '*'
 
-    def isbroad(self):
+    def isbroad(self) -> bool:
         return \
             len(self._entities) == 0 and \
             self._suffix == '*'
@@ -378,47 +378,47 @@ class ResourceKey(Hashable):
 
 class Resource(Hashable):
 
-    def __init__(self, content):
+    def __init__(self, content: Any):
         self._content = content
 
-    def __copy__(self):
+    def __copy__(self) -> 'Resource':
         return Resource(self._content)
 
-    def __hashcontent__(self):
+    def __hashcontent__(self) -> Any:
         return (self._content,)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'Resource({self.__shorthash__()})'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Resource({self.__shorthash__()})'
 
-    def __call__(self, **state):
+    def __call__(self, **state: Any) -> Any:
         return self._content
 
     @property
-    def content(self):
+    def content(self) -> Any:
         return self._content
 
     @property
-    def dependencies(self):
+    def dependencies(self) -> Dict[str, Any]:
         return {}
 
 
 class InvalidResource(Resource):
 
-    def __init__(self, resource, exception=None):
+    def __init__(self, resource: Resource, exception:Exception=None):
         self._resource = resource
         self._exception = exception
 
-    def __hashcontent__(self):
+    def __hashcontent__(self) -> Any:
         return (self._resource, self._exception)
 
-    def __call__(self, **state):
+    def __call__(self, **state) -> Any:
         return self.content
 
     @property
-    def content(self):
+    def content(self) -> Any:
         if self._exception:
             raise self._exception
 
@@ -444,7 +444,7 @@ class ResourcePool:
             for entity in ResourceKey.branching_entities
         }
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[ResourceKey, Resource]]:
         return iter(self._pool.items())
 
     def __contains__(self, key: ResourceKey) -> bool:
@@ -513,7 +513,7 @@ class ResourcePool:
                 self._pool_by_tag[flag] = {}
             self._pool_by_tag[flag][resource_key] = resource
 
-    def extract(self, *resources):
+    def extract(self, *resources: Union[ResourceKey, str]):
 
         extracted_resources = {}
         strategies = {}
@@ -654,11 +654,11 @@ class StrategyResourcePool:
     A non-safe resource pool proxy for a specific strategy.
     """
 
-    def __init__(self, strategy, resource_pool):
+    def __init__(self, strategy: ResourceKey, resource_pool: ResourcePool):
         self._strategy = strategy
         self._reference_pool = resource_pool
 
-    def _map(self, resource_key):
+    def _map(self, resource_key: ResourceKey) -> ResourceKey:
         if isinstance(resource_key, list):
             return [self._map(k) for k in resource_key]
 
@@ -678,7 +678,7 @@ class StrategyResourcePool:
             **new_key
         )
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[ResourceKey, Resource]]:
         return iter(
             (k, v) for k, v in self._reference_pool.items()
             if k in self._strategy
