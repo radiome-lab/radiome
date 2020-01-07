@@ -1,11 +1,10 @@
 import logging
 import networkx as nx
-from radiome.resource_pool import Resource, ResourcePool, InvalidResource
-from radiome.utils import deterministic_hash, Hashable
+from radiome.resource_pool import ResourcePool, InvalidResource
 
 from .state import FileState
 from .executor import Execution
-from .job import Job, ComputedResource
+from .job import ComputedResource
 
 logger = logging.getLogger('radiome.execution')
 
@@ -61,7 +60,7 @@ class DependencySolver:
 
         executor.execute(state=state, graph=G)
 
-        logger.info(f'Gathering resources')
+        logger.info('Gathering resources')
         resource_pool = ResourcePool()
         for resource, attr in self.graph.nodes.items():
             if not isinstance(resource, ComputedResource):

@@ -1,5 +1,7 @@
 from __future__ import with_statement
-import contextlib, os
+
+import contextlib
+import os
 
 
 @contextlib.contextmanager

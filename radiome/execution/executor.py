@@ -46,9 +46,9 @@ def dask_lock(method):
     def inner(state_instance, *args, **kwargs):
         unlock = False
         try:
-            if not state_instance._lock.locked():
-                logger_lock.info(f'{method.__name__}: Acquiring lock for job {state_instance._job}')
-                state_instance._lock.acquire()
+            if not state_instance.lock.locked():
+                logger_lock.info(f'{method.__name__}: Acquiring lock for job {state_instance.job}')
+                state_instance.lock.acquire()
                 unlock = True
             return method(state_instance, *args, **kwargs)
         except Exception as e:
@@ -56,8 +56,8 @@ def dask_lock(method):
             raise e
         finally:
             if unlock:
-                logger_lock.info(f'{method.__name__}: Releasing lock for job {state_instance._job}')
-                state_instance._lock.release()
+                logger_lock.info(f'{method.__name__}: Releasing lock for job {state_instance.job}')
+                state_instance.lock.release()
     return inner
 
 class DaskJobState(JobState):
@@ -82,6 +82,10 @@ class DaskJobState(JobState):
         self._state = state['_state']
         self._job = state['_job']
         self._lock = Lock(self._job.__shorthash__(), client=get_client())
+
+    @property
+    def lock(self):
+        return self._lock
 
     @property
     @dask_lock
@@ -122,7 +126,6 @@ class DaskExecution(Execution):
         logger.info(f'Joining execution of {len(self._futures)} executions: {list(str(s.key) for s in self._futures.values())}')
         self._client.sync(self._result, list(self._futures.values()))
         self._joined = True
-
 
     def schedule(self, state, job):
         state_job = DaskJobState(self._client, state, job)

@@ -7,14 +7,17 @@ def _nestedrepr(obj):
             (_nestedrepr(k), _nestedrepr(v))
             for k, v in sorted(obj.items(), key=lambda i: i[0])
         ])
-    elif isinstance(obj, (list, tuple)):
+    
+    if isinstance(obj, (list, tuple)):
         return repr([_nestedrepr(v) for v in obj])
-    elif isinstance(obj, set):
+    
+    if isinstance(obj, set):
         return repr([_nestedrepr(v) for v in sorted(list(obj))])
-    elif isinstance(obj, Hashable):
+    
+    if isinstance(obj, Hashable):
         return _nestedrepr(obj.__hashcontent__())
-    else:
-        return repr(obj)
+
+    return repr(obj)
 
 
 def deterministic_hash(obj):

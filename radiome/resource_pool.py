@@ -29,11 +29,8 @@ class Strategy(Hashable):
                                  f'separated by {Strategy.FORK_SEP}, '
                                  f'provided: "{forks}"')
             forks = [
-                (k, v)
-                for k, v in [
-                    strat.split(Strategy.KEYVAL_SEP, 1)
-                    for strat in forks.split(Strategy.FORK_SEP)
-                ]
+                tuple(strat.split(Strategy.KEYVAL_SEP, 1))
+                for strat in forks.split(Strategy.FORK_SEP)
             ]
         else:
             forks = forks or {}
@@ -55,10 +52,7 @@ class Strategy(Hashable):
 
     @property
     def forks(self):
-        return OrderedDict([
-            (k, v)
-            for k, v in self._forks.items()
-        ])
+        return OrderedDict(self._forks.items())
 
     def __hashcontent__(self):
         return tuple(
@@ -164,10 +158,7 @@ class ResourceKey(Hashable):
             if isinstance(key, ResourceKey):
                 suffix = key.suffix
                 tags |= key.tags
-                entities = {
-                    k: v
-                    for k, v in key._entities.items()
-                }
+                entities = key._entities.copy()
                 strategy = key._strategy
 
             else:
@@ -183,15 +174,15 @@ class ResourceKey(Hashable):
         if kwargs:
             suffix = kwargs.get('suffix', suffix)
 
-            for key, value in kwargs.items():
-                if key == 'suffix':
+            for kwargs_key, value in kwargs.items():
+                if kwargs_key == 'suffix':
                     continue
 
                 if value is None:
-                    if key in entities:
-                        del entities[key]
+                    if kwargs_key in entities:
+                        del entities[kwargs_key]
                 else:
-                    entities[key] = value
+                    entities[kwargs_key] = value
 
         if suffix not in self.valid_suffixes:
             raise ValueError(f'Invalid suffix "{suffix}"')
@@ -217,16 +208,16 @@ class ResourceKey(Hashable):
 
         self._strategy = strategy
 
-        for key, value in entities.items():
-            if key not in self.supported_entities:
-                raise KeyError(f'Entity "{key}" is not supported '
+        for entity_key, value in entities.items():
+            if entity_key not in self.supported_entities:
+                raise KeyError(f'Entity "{entity_key}" is not supported '
                                f'by the resource pool')
 
             if not value:
-                raise ValueError(f'Entity "{key}" value '
+                raise ValueError(f'Entity "{entity_key}" value '
                                  f'cannot be empty')
 
-            self._entities[key] = str(value)
+            self._entities[entity_key] = str(value)
 
         self._tags = {str(t) for t in tags}
 
@@ -241,7 +232,7 @@ class ResourceKey(Hashable):
         for k, v in self._entities:
             if k not in other_entities:
                 return -1
-            elif v != other_entities[k]:
+            if v != other_entities[k]:
                 return v < other_entities[k]
 
         return len(self._entities) < len(other_entities)
@@ -340,7 +331,7 @@ class ResourceKey(Hashable):
 
             return True
 
-        elif isinstance(key, str):
+        if isinstance(key, str):
             return key in self._entities
 
         return False
@@ -351,7 +342,7 @@ class ResourceKey(Hashable):
 
     @property
     def tags(self):
-        return {t for t in self._tags}
+        return self._tags.copy()
 
     @property
     def strategy(self):
@@ -362,10 +353,7 @@ class ResourceKey(Hashable):
 
     @property
     def entities(self):
-        return {
-            k: v
-            for k, v in self._entities.items()
-        }
+        return self._entities.copy()
 
     @staticmethod
     def from_key(key):
@@ -460,7 +448,7 @@ class ResourcePool:
         return iter(self._pool.items())
 
     def __contains__(self, key: ResourceKey) -> bool:
-        for rp_key in self._pool.keys():
+        for rp_key in self._pool:
             if rp_key in key:
                 return True
         return False
@@ -476,7 +464,7 @@ class ResourcePool:
             except KeyError:
                 return self._pool[next(iter(sorted([
                     k
-                    for k in self._pool.keys()
+                    for k in self._pool
                     if k in key
                 ], reverse=True)))]
 
@@ -551,20 +539,21 @@ class ResourcePool:
         expected_branching_keys = [
             b for b in self._pool_branches
             if
-                # there is branching in this entity
-                self._pool_branches[b] and
+            
+            # there is branching in this entity
+            self._pool_branches[b] and
 
-                # all resource selectors for this entity are not wildcards
-                all(
-                    b not in resource or resource[b] != '*'
-                    for resource in resources
-                ) and
+            # all resource selectors for this entity are not wildcards
+            all(
+                b not in resource or resource[b] != '*'
+                for resource in resources
+            ) and
 
-                # there is at least one selected resource that uses this branch
-                any(
-                    any(resource in b for b in self._pool_branched_resources[b])
-                    for resource in resources
-                )
+            # there is at least one selected resource that uses this branch
+            any(
+                any(resource in b for b in self._pool_branched_resources[b])
+                for resource in resources
+            )
         ]
         expected_branching_values_set = [
             self._pool_branches[b] for b in expected_branching_keys
@@ -579,11 +568,7 @@ class ResourcePool:
 
             expected_branching = dict(zip(expected_branching_keys, branching_values))
 
-            strategy_combination = Strategy([
-                (k, v)
-                for k, v
-                in zip(strategies_keys, strategies_values)
-            ])
+            strategy_combination = Strategy(zip(strategies_keys, strategies_values))
 
             expected_strategy_combination = {}
             if strategy_combination:
@@ -594,15 +579,6 @@ class ResourcePool:
                 **expected_branching,
                 suffix='*'
             )
-
-            """
-            extracted_resource_pool = StrategyResourcePool(strategy_key, self)
-
-            # Assert strategy has all the resources required
-            if all(e in extracted_resource_pool for e in extracted_resources):
-                yield strategy_key, extracted_resource_pool
-
-            """
 
             extracted_resource_pool = ResourcePool()
 

@@ -61,7 +61,7 @@ class Job(Hashable):
 
     @property
     def dependencies(self):
-        return {k: v for k, v in self._inputs.items()}
+        return self._inputs.copy()
 
 
 class PythonJob(Job):

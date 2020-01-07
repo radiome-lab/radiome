@@ -1,11 +1,8 @@
 from radiome.resource_pool import ResourcePool, ResourceKey as R
 
 from nipype.interfaces import afni
-from nipype.interfaces import ants
-import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as util
+# from nipype.interfaces import ants
 
-from radiome.execution import Job
 from radiome.execution.nipype import NipypeJob
 
 # TODO input validation by resouce metadata (variant, flags, type)
@@ -15,7 +12,7 @@ from radiome.execution.nipype import NipypeJob
 
 def create_workflow(configuration, resource_pool: ResourcePool):
 
-    for strat, rp in resource_pool[[
+    for _, rp in resource_pool[[
         R('T1w'),
     ]]:
         anatomical_image = rp[R('T1w')]

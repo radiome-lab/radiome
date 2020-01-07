@@ -21,6 +21,10 @@ class JobState:
         return f'JobState({self._job.__repr__()})'
 
     @property
+    def job(self):
+        return self._job
+
+    @property
     def dir(self):
         return self._state.dir(self._job)
 
@@ -115,7 +119,7 @@ class FileState:
         with cwd(self.dir(job)):
             try:
 
-                if not kwargs and len(args) and isinstance(args[0], types.GeneratorType):
+                if not kwargs and len(args) > 0 and isinstance(args[0], types.GeneratorType):
                     kwargs = dict(args[0])
 
                 state = job(**kwargs)
