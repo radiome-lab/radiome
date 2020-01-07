@@ -7,8 +7,8 @@ RUN apt-get update && \
         libpng-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN ln -s "$(ls -1 /usr/lib/x86_64-linux-gnu/libXpm.so* | head -n 1)" /usr/lib/x86_64-linux-gnu/libXp.so.6
-RUN ln -s "$(ls -1 /usr/lib/x86_64-linux-gnu/libpng.so* | head -n 1)" /usr/lib/x86_64-linux-gnu/libpng12.so.0
+RUN ln -s "$(find /usr/lib/x86_64-linux-gnu/libXpm.so* | head -n 1)" /usr/lib/x86_64-linux-gnu/libXp.so.6
+RUN ln -s "$(find /usr/lib/x86_64-linux-gnu/libpng.so* | head -n 1)" /usr/lib/x86_64-linux-gnu/libpng12.so.0
 
 # Install AFNI tools
 RUN mkdir -p /opt/afni && \
