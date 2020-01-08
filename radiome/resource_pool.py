@@ -128,9 +128,17 @@ class ResourceKey(Hashable):
     _tags: Set[str]
 
     def __init__(self,
-                 key: Union[str, Dict[str, str], None] = None,
+                 key: Union[str, Dict[str, str], 'ResourceKey', None] = None,
                  tags: Union[Set[str], None] = None,
                  **kwargs) -> None:
+
+        """Initialize a ResourceKey instance, based on a previous key, a mapping
+        of entities or a BIDS-valid string.
+
+        Args:
+            key (:obj:`str`,)
+
+        """
 
         entities = {}
         suffix = '*'
