@@ -136,8 +136,24 @@ class ResourceKey(Hashable):
         of entities or a BIDS-valid string.
 
         Args:
-            key (:obj:`str`,)
+            key: The content of the key. A ResourceKey might be provided and 
+                specific entities can be overwritten with kwargs.
+                `*` can be used to use it as a filter
+                `^` can be used to use it as a non-matching filter
+            tags: Tags to mark resources
+            **kwargs: Custom entities to overwrite entities from `key`.
 
+        Examples:
+            Examples should be written in doctest format, and should illustrate how
+            to use the function.
+
+            >>> acq_filter = ResourceKey('acq-*_T1w')
+            >>> ResourceKey('acq-mprage_T1w') in acq_filter
+            True
+
+            >>> not_acq_filter = ResourceKey('acq-^_T1w')
+            >>> ResourceKey('acq-mprage_T1w') in not_acq_filter
+            False
         """
 
         entities = {}
