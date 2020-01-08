@@ -246,6 +246,17 @@ class ResourceKey(Hashable):
         self._tags = {str(t) for t in tags}
 
     def __lt__(self, other: 'ResourceKey') -> bool:
+        """Compare ResourceKeys based on quantity of entities and strategy.
+        Earlier strategies (with less forks) are considered lesser than new
+        strategies.
+
+        Args:
+            other: ResourceKey to be compared to.
+
+        Returns:
+            True if object is considered lesser than other.
+            False otherwise.
+        """
         if self.suffix != other.suffix:
             return self.suffix < other.suffix
 
