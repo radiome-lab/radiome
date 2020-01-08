@@ -104,6 +104,25 @@ class Strategy(Hashable):
 
 
 class ResourceKey(Hashable):
+    """Representation of a resource, matching BIDS specification.
+
+    Stores information contained in BIDS naming specs.
+    E.g. `sub-001_ses-001_T1w.nii.gz`
+
+    Entities are the key-value information encoded in the format
+    `key-value` in the file name.
+
+    The suffix is the last part of the name, after the last underscore.
+
+    Strategy is specific to radiome, and it is encoded in the `desc` entity,
+    in the format `desc-strategy` in which strategy is encoded as `key-value`
+    separated by `+`. E.g. `desc-skullstripping-afni+registration-ants`
+    In case there is an actual value for this entity, the strategy will
+    be encoded as `key-value#strategy`.
+
+    The resource key object can work as a filter, in case an entity of suffix
+    is a quantifier: * and ^
+    """
 
     KEYVAL_SEP = '-'
     ENTITY_SEP = '_'
