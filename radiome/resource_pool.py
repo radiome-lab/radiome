@@ -401,6 +401,8 @@ class ResourceKey(Hashable):
             False
         """
 
+        key = ResourceKey(key)
+
         if self._suffix != '*' and self._suffix != key.suffix:
             return False
 
@@ -695,7 +697,7 @@ class ResourcePool:
 
                 expected_resource_unbranching = {
                     b: '*' for b in ResourceKey.branching_entities
-                    if b in resource and resource[b] == '*'
+                    if b in resource.entities and resource[b] == '*'
                 }
 
                 resource_filter = ResourceKey(
@@ -721,12 +723,12 @@ class ResourcePool:
                                 **{
                                     bk: bv if bv != "*" else strategy_extracted_resource[bk]
                                     for bk, bv in {**expected_resource_unbranching, **expected_branching}.items()
-                                    if bk in strategy_extracted_resource
+                                    if bk in strategy_extracted_resource.entities
                                 },
                                 **{
                                     k: v
                                     for k, v in strategy_extracted_resource.entities.items()
-                                    if k in resource
+                                    if k in resource.entities
                                 }
                             }
                         )
