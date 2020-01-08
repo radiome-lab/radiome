@@ -261,12 +261,31 @@ class ResourceKey(Hashable):
             return self.suffix < other.suffix
 
         if self.strategy != other.strategy:
+
+            other_strategy = other.strategy
+            self_strategy_keys = set(self.strategy.keys())
+            other_strategy_keys = set(other_strategy.keys())
+
+            if not self_strategy_keys.issubset(other_strategy_keys) and \
+                not other_strategy_keys.issubset(self_strategy_keys):
+                raise ValueError(f'Strategy are not subsets: {self_strategy_keys} '
+                                f'and {other_strategy_keys}')
+
             return self.strategy < other.strategy
 
         other_entities = other.entities
+
+        self_entities_keys = set(self._entities.keys())
+        other_entities_keys = set(other_entities.keys())
+
+        if not self_entities_keys.issubset(other_entities_keys) and \
+            not other_entities_keys.issubset(self_entities_keys):
+            raise ValueError(f'Entities are not subsets: {self_entities_keys} '
+                             f'and {other_entities_keys}')
+
         for k, v in self._entities:
             if k not in other_entities:
-                return -1
+                return False
             if v != other_entities[k]:
                 return v < other_entities[k]
 
