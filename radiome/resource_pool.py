@@ -104,6 +104,25 @@ class Strategy(Hashable):
 
 
 class ResourceKey(Hashable):
+    """Representation of a resource, matching BIDS specification.
+
+    Stores information contained in BIDS naming specs.
+    E.g. `sub-001_ses-001_T1w.nii.gz`
+
+    Entities are the key-value information encoded in the format
+    `key-value` in the file name.
+
+    The suffix is the last part of the name, after the last underscore.
+
+    Strategy is specific to radiome, and it is encoded in the `desc` entity,
+    in the format `desc-strategy` in which strategy is encoded as `key-value`
+    separated by `+`. E.g. `desc-skullstripping-afni+registration-ants`
+    In case there is an actual value for this entity, the strategy will
+    be encoded as `key-value#strategy`.
+
+    The resource key object can work as a filter, in case an entity of suffix
+    is a quantifier: * and ^
+    """
 
     KEYVAL_SEP = '-'
     ENTITY_SEP = '_'
@@ -128,9 +147,33 @@ class ResourceKey(Hashable):
     _tags: Set[str]
 
     def __init__(self,
-                 key: Union[str, Dict[str, str], None] = None,
+                 key: Union[str, Dict[str, str], 'ResourceKey', None] = None,
                  tags: Union[Set[str], None] = None,
                  **kwargs) -> None:
+
+        """Initialize a ResourceKey instance, based on a previous key, a mapping
+        of entities or a BIDS-valid string.
+
+        Args:
+            key: The content of the key. A ResourceKey might be provided and 
+                specific entities can be overwritten with kwargs.
+                `*` can be used to use it as a filter
+                `^` can be used to use it as a non-matching filter
+            tags: Tags to mark resources
+            **kwargs: Custom entities to overwrite entities from `key`.
+
+        Examples:
+            Examples should be written in doctest format, and should illustrate how
+            to use the function.
+
+            >>> acq_filter = ResourceKey('acq-*_T1w')
+            >>> ResourceKey('acq-mprage_T1w') in acq_filter
+            True
+
+            >>> not_acq_filter = ResourceKey('acq-^_T1w')
+            >>> ResourceKey('acq-mprage_T1w') in not_acq_filter
+            False
+        """
 
         entities = {}
         suffix = '*'
@@ -222,28 +265,55 @@ class ResourceKey(Hashable):
         self._tags = {str(t) for t in tags}
 
     def __lt__(self, other: 'ResourceKey') -> bool:
+        """Compare ResourceKeys based on quantity of entities and strategy.
+        Earlier strategies (with less forks) are considered lesser than new
+        strategies.
+
+        Args:
+            other: ResourceKey to be compared to.
+
+        Returns:
+            True if object is considered lesser than other.
+            False otherwise.
+        """
         if self.suffix != other.suffix:
             return self.suffix < other.suffix
 
         if self.strategy != other.strategy:
+
+            other_strategy = other.strategy
+            self_strategy_keys = set(self.strategy.keys())
+            other_strategy_keys = set(other_strategy.keys())
+
+            if not self_strategy_keys.issubset(other_strategy_keys) and \
+                not other_strategy_keys.issubset(self_strategy_keys):
+                raise ValueError(f'Strategy are not subsets: {self_strategy_keys} '
+                                f'and {other_strategy_keys}')
+
             return self.strategy < other.strategy
 
         other_entities = other.entities
+
+        self_entities_keys = set(self._entities.keys())
+        other_entities_keys = set(other_entities.keys())
+
+        if not self_entities_keys.issubset(other_entities_keys) and \
+            not other_entities_keys.issubset(self_entities_keys):
+            raise ValueError(f'Entities are not subsets: {self_entities_keys} '
+                             f'and {other_entities_keys}')
+
         for k, v in self._entities:
             if k not in other_entities:
-                return -1
+                return False
             if v != other_entities[k]:
                 return v < other_entities[k]
 
         return len(self._entities) < len(other_entities)
 
-    def __call__(self, resouce_pool: 'ResourcePool') -> 'StrategyResourcePool':
-        return StrategyResourcePool(self, resouce_pool)
-
-    def __repr__(self) -> str:
-        return str(self)
-
     def __hashcontent__(self) -> Any:
+        """Create a reliable set of tuples and strings used
+        to hash the key.
+        """
         return (
             self._suffix,
             self._strategy.__hashcontent__(),
@@ -255,7 +325,16 @@ class ResourceKey(Hashable):
             tuple(self._tags),
         )
 
+    def __repr__(self) -> str:
+        """Use __str__ representation as official repr"""
+        return str(self)
+
     def __str__(self) -> str:
+        """Create a string representation of the key.
+
+        The representation is compatible with BIDS. It prepares
+        the `desc` field in case that there is an strategy in place.
+        """
         desc = ResourceKey.STRAT_SEP.join(filter(None, [
             self._entities.get('desc', ''),
             str(self._strategy)
@@ -276,12 +355,22 @@ class ResourceKey(Hashable):
         ))
 
     def keys(self) -> List[str]:
+        """Get a list of keys of defined entities and strategy."""
         return \
             list(self._entities.keys()) + \
             ['suffix'] + \
             (['strategy'] if self._strategy else [])
 
     def __getitem__(self, item: str) -> str:
+        """Retrieve an entity, the suffix, or an strategy.
+
+        Args:
+            item: Entity or specific property to retrieve
+
+        Returns:
+            String, in case of entities and suffix.
+            Strategy, in case of `strategy` item.
+        """
 
         if item == 'suffix':
             return self._suffix
@@ -296,56 +385,68 @@ class ResourceKey(Hashable):
         return self._entities[item]
 
     def __contains__(self, key: Union[str, 'ResourceKey']) -> bool:
+        """Assess if a key is a subset of it.
 
-        if isinstance(key, ResourceKey):
+        It is the main method that allows a ResourceKey to be a filter.
 
-            if self._suffix != '*' and self._suffix != key.suffix:
+        Returns:
+            True, if `key` is a subset of `self`.
+            False, otherwise.
+
+        Examples:
+            >>> ResourceKey('sub-001_T1w') in ResourceKey('sub-*_T1w')
+            True
+
+            >>> ResourceKey('sub-001_ses-001_T1w') in ResourceKey('sub-*_ses-^_T1w')
+            False
+        """
+
+        if self._suffix != '*' and self._suffix != key.suffix:
+            return False
+
+        for entity, value in self._entities.items():
+            if value == '^':
+                if entity in key._entities:
+                    return False
+            else:
+
+                if entity not in key._entities:
+                    continue
+
+                if value == '*':
+                    continue
+
+                if value != key._entities[entity]:
+                    return False
+
+        my_strat = self.strategy
+        key_strat = key.strategy
+
+        if my_strat not in key_strat:
+            return False
+
+        if self.tags:
+            if not key._tags:
+                return False
+            if not all(tag in key.tags for tag in self._tags):
                 return False
 
-            for entity, value in self._entities.items():
-                if value == '^':
-                    if entity in key._entities:
-                        return False
-                else:
-
-                    if entity not in key._entities:
-                        continue
-
-                    if value == '*':
-                        continue
-
-                    if value != key._entities[entity]:
-                        return False
-
-            my_strat = self.strategy
-            key_strat = key.strategy
-
-            if my_strat not in key_strat:
-                return False
-
-            if self.tags:
-                if not key._tags:
-                    return False
-                if not all(tag in key.tags for tag in self._tags):
-                    return False
-
-            return True
-
-        if isinstance(key, str):
-            return key in self._entities
-
-        return False
+        return True
 
     @property
     def suffix(self) -> str:
+        """Retrieve the suffix."""
         return self._suffix
 
     @property
     def tags(self) -> Set[str]:
+        """Retrieve a copy of the tags."""
         return self._tags.copy()
 
     @property
     def strategy(self) -> Strategy:
+        """Retrieve the strategy. An empty strategy will be
+        created if not set."""
         if not self._strategy:
             return Strategy({})
 
@@ -353,24 +454,32 @@ class ResourceKey(Hashable):
 
     @property
     def entities(self) -> Dict[str, str]:
+        """Retrieve a copy of entities."""
         return self._entities.copy()
 
-    @staticmethod
-    def from_key(key: Union['ResourceKey', str, Dict[str, str]]) -> 'ResourceKey':
-        if isinstance(key, ResourceKey):
-            return key
-
-        return ResourceKey(key)
-
     def isfilter(self) -> bool:
+        """Check if key is a filter.
+
+        It will be considered a filter if it contains a quantifier.
+
+        Returns:
+            True, if an entity or suffix is a quantifier.
+            False, otherwise.
+        """
         return \
             any(
-                v == '*'
+                v in ['*', '^']
                 for v in self._entities.values()
             ) or \
             self._suffix == '*'
 
     def isbroad(self) -> bool:
+        """Check if key is a broad key (*).
+
+        Returns:
+            True, if there is no entity and suffix matches all.
+            False, otherwise.
+        """
         return \
             len(self._entities) == 0 and \
             self._suffix == '*'
@@ -504,7 +613,7 @@ class ResourcePool:
             **cleaner
         )
         for entity in ResourceKey.branching_entities:
-            if entity in resource_key:
+            if entity in resource_key.entities:
                 self._pool_branches[entity].add(resource_key[entity])
                 self._pool_branched_resources[entity].add(clean_resource_key)
 
@@ -545,7 +654,7 @@ class ResourcePool:
 
             # all resource selectors for this entity are not wildcards
             all(
-                b not in resource or resource[b] != '*'
+                b not in resource.entities or resource[b] != '*'
                 for resource in resources
             ) and
 
