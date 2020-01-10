@@ -60,6 +60,7 @@ def dask_lock(method):
                 state_instance.lock.release()
     return inner
 
+
 class DaskJobState(JobState):
 
     def __init__(self, client, state, job):
