@@ -5,15 +5,16 @@ from nipype.interfaces import afni
 
 from radiome.execution.nipype import NipypeJob
 
+
 # TODO input validation by resouce metadata (variant, flags, type)
 # TODO output validation by resouce metadata (variant, flags, type)
 # TODO config schema validator
 # TODO docstrings
 
-def create_workflow(configuration, resource_pool: ResourcePool):
 
+def create_workflow(configuration, resource_pool: ResourcePool):
     for _, rp in resource_pool[[
-        R('T1w'),
+        'T1w',
     ]]:
         anatomical_image = rp[R('T1w')]
 

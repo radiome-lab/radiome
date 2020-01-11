@@ -155,7 +155,7 @@ class ResourceKey(Hashable):
         of entities or a BIDS-valid string.
 
         Args:
-            key: The content of the key. A ResourceKey might be provided and 
+            key: The content of the key. A ResourceKey might be provided and
                 specific entities can be overwritten with kwargs.
                 `*` can be used to use it as a filter
                 `^` can be used to use it as a non-matching filter
@@ -495,8 +495,8 @@ class Resource(Hashable):
     def __copy__(self) -> 'Resource':
         return Resource(self._content)
 
-    def __hashcontent__(self) -> Any:
-        return (self._content,)
+    def __hashcontent__(self) -> Tuple:
+        return self._content,
 
     def __str__(self) -> str:
         return f'Resource({self.__shorthash__()})'
@@ -518,12 +518,12 @@ class Resource(Hashable):
 
 class InvalidResource(Resource):
 
-    def __init__(self, resource: Resource, exception:Exception=None):
+    def __init__(self, resource: Resource, exception: Exception=None):
         self._resource = resource
         self._exception = exception
 
-    def __hashcontent__(self) -> Any:
-        return (self._resource, self._exception)
+    def __hashcontent__(self) -> Tuple:
+        return self._resource, self._exception
 
     def __call__(self, **state) -> Any:
         return self.content
@@ -587,7 +587,7 @@ class ResourcePool:
 
         raise KeyError(f'Key "{key}" not find in suffixes or tags')
 
-    def __setitem__(self, resource_key: ResourceKey, resource: Resource) -> None:
+    def __setitem__(self, resource_key: Union[ResourceKey, str], resource: Resource) -> None:
 
         if not isinstance(resource_key, ResourceKey):
             resource_key = ResourceKey(str(resource_key))
@@ -650,7 +650,7 @@ class ResourcePool:
         expected_branching_keys = [
             b for b in self._pool_branches
             if
-            
+
             # there is branching in this entity
             self._pool_branches[b] and
 
@@ -757,7 +757,6 @@ class ResourcePool:
                 yield strategy_key, StrategyResourcePool(strategy_key, self)
 
             # """
-
 
 
 class StrategyResourcePool:

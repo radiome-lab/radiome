@@ -2,6 +2,7 @@ from unittest import TestCase
 from radiome.resource_pool import Resource, ResourceKey as R, ResourcePool
 from itertools import product
 
+
 class TestResourcePool(TestCase):
 
     def test_resource_pool(self):
@@ -87,15 +88,21 @@ class TestResourcePool(TestCase):
         for sub, ses in product(range(subs), range(sess)):
             ses_prefix = 'sub-%03d_ses-%03d_' % (sub, ses)
             rp[ses_prefix + 'space-orig_T1w'] = Resource(ses_prefix + 'space-orig_T1w')
-            rp[ses_prefix + 'space-orig_desc-skullstrip-afni_mask'] = Resource(ses_prefix + 'space-orig_desc-skullstrip-afni_mask')
-            rp[ses_prefix + 'space-orig_desc-skullstrip-bet_mask'] = Resource(ses_prefix + 'space-orig_desc-skullstrip-bet_mask')
+            rp[ses_prefix + 'space-orig_desc-skullstrip-afni_mask'] = Resource(
+                ses_prefix + 'space-orig_desc-skullstrip-afni_mask')
+            rp[ses_prefix + 'space-orig_desc-skullstrip-bet_mask'] = Resource(
+                ses_prefix + 'space-orig_desc-skullstrip-bet_mask')
 
         for sub, ses, run in product(range(subs), range(sess), range(runs)):
             run_prefix = 'sub-%03d_ses-%03d_run-%03d_' % (sub, ses, run)
-            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold')
-            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold')
-            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold')
-            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold'] = Resource(run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold'] = Resource(
+                run_prefix + 'space-orig_desc-skullstrip-afni+nuis-gsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold'] = Resource(
+                run_prefix + 'space-orig_desc-skullstrip-bet+nuis-gsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold'] = Resource(
+                run_prefix + 'space-orig_desc-skullstrip-afni+nuis-nogsr_bold')
+            rp[run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold'] = Resource(
+                run_prefix + 'space-orig_desc-skullstrip-bet+nuis-nogsr_bold')
 
         extraction = list(rp[[
             'space-orig_T1w',
@@ -119,7 +126,6 @@ class TestResourcePool(TestCase):
         ]])
 
         self.assertEqual(len(extraction), 4 * sess * runs)
-
 
     def test_resource_key(self):
 
@@ -170,7 +176,6 @@ class TestResourcePool(TestCase):
 
         # Wildcard matching
         self.assertTrue(R('sub-001_mask') in R('sub-*_mask'))
-
 
     def test_invalid_resource_key(self):
 

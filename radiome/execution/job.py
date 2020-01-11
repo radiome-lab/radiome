@@ -4,7 +4,6 @@ from radiome.utils import deterministic_hash, Hashable
 
 
 class Job(Hashable):
-
     _reference = None
     _inputs = None
     _hashinputs = None
@@ -24,8 +23,8 @@ class Job(Hashable):
         if self._hashinputs:
             inputs = self._hashinputs
         else:
-            inputs = { k: deterministic_hash(v) for k, v in self._inputs.items() }
-        return (self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0]))))
+            inputs = {k: deterministic_hash(v) for k, v in self._inputs.items()}
+        return self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0])))
 
     def __call__(self, **kwargs):
         raise NotImplementedError()
@@ -94,7 +93,7 @@ class ComputedResource(Job, Resource):
 
     def __init__(self, content):
         self._content = content
-        self._inputs = { content[1]: content[0] }
+        self._inputs = {content[1]: content[0]}
 
     def __str__(self):
         return f'Computed({self._content[0].__str__()},{self._content[1]})'
@@ -106,8 +105,8 @@ class ComputedResource(Job, Resource):
         if self._hashinputs:
             inputs = self._hashinputs
         else:
-            inputs = { k: deterministic_hash(v) for k, v in self._inputs.items() }
-        return (self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0]))))
+            inputs = {k: deterministic_hash(v) for k, v in self._inputs.items()}
+        return self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0])))
 
     def __call__(self, **state):
         return state[self._content[1]][self._content[1]]

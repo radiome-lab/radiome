@@ -5,7 +5,7 @@ from nipype.interfaces import base as nib
 
 from radiome.execution import DependencySolver
 from radiome.execution.nipype import NipypeJob
-from radiome.resource_pool import ResourcePool, ResourceKey
+from radiome.resource_pool import ResourcePool, ResourceKey, Resource
 
 
 class InputSpec(nib.TraitedSpec):
@@ -29,13 +29,6 @@ class EngineTestInterface(nib.SimpleInterface):
 
 
 class TestNipypeJob(unittest.TestCase):
-    def test_output(self):
-        rp = ResourcePool()
-        mod1 = NipypeJob(EngineTestInterface(), reference="mod1")
-        mod1.input1 = 1
-        # TODO do we need to accept other type of inputs except Resource
-        # mod1()
-
     def test_connect(self):
         rp = ResourcePool()
         mod2 = NipypeJob(EngineTestInterface(), reference="mod2")

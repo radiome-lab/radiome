@@ -1,27 +1,27 @@
 import hashlib
 
 
-def _nestedrepr(obj):
+def _nested_repr(obj):
     if isinstance(obj, dict):
         return repr([
-            (_nestedrepr(k), _nestedrepr(v))
+            (_nested_repr(k), _nested_repr(v))
             for k, v in sorted(obj.items(), key=lambda i: i[0])
         ])
-    
+
     if isinstance(obj, (list, tuple)):
-        return repr([_nestedrepr(v) for v in obj])
-    
+        return repr([_nested_repr(v) for v in obj])
+
     if isinstance(obj, set):
-        return repr([_nestedrepr(v) for v in sorted(list(obj))])
-    
+        return repr([_nested_repr(v) for v in sorted(list(obj))])
+
     if isinstance(obj, Hashable):
-        return _nestedrepr(obj.__hashcontent__())
+        return _nested_repr(obj.__hashcontent__())
 
     return repr(obj)
 
 
 def deterministic_hash(obj):
-    return hashlib.sha256(_nestedrepr(obj).encode('UTF-8')).hexdigest()
+    return hashlib.sha256(_nested_repr(obj).encode('UTF-8')).hexdigest()
 
 
 class Hashable:

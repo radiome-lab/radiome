@@ -13,7 +13,7 @@ class NipypeJob(Job):
         self._interface = copy.deepcopy(interface)
 
     def __hashcontent__(self):
-        return (self._interface.__class__, super().__hashcontent__())
+        return self._interface.__class__, super().__hashcontent__()
 
     def __getattr__(self, attr):
         if attr.startswith('_'):
