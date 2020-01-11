@@ -45,7 +45,10 @@ class Job(Hashable):
 
     def __getattr__(self, attr):
         if attr.startswith('_'):
-            return self.__dict__[attr]
+            if attr in self.__dict__:
+                return self.__dict__[attr]
+            else:
+                raise AttributeError(f'Invalid input/output name: {attr}')
 
         return ComputedResource((self, attr))
 
@@ -57,6 +60,8 @@ class Job(Hashable):
         if isinstance(value, (Resource, ResourcePool)):
             self._inputs[attr] = value
             return
+
+        raise AttributeError(f'Invalid input type: {type(value)}. It must be a Resource or ResourcePool')
 
     @property
     def dependencies(self):

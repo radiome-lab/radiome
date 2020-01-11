@@ -16,13 +16,13 @@ class NipypeJob(Job):
         return self._interface.__class__, super().__hashcontent__()
 
     def __getattr__(self, attr):
-        if attr.startswith('_'):
+        if attr.startswith('_') and attr in self.__dict__:
             return self.__dict__[attr]
 
         if attr in self._interface.output_spec.class_visible_traits():
             return ComputedResource((self, attr))
 
-        raise KeyError(f'Invalid input/output name: {attr}')
+        raise AttributeError(f'Invalid input/output name: {attr}')
 
     def __setattr__(self, attr, value):
         if attr.startswith('_'):
@@ -30,7 +30,7 @@ class NipypeJob(Job):
             return
 
         if attr not in self._interface.inputs.visible_traits():
-            raise KeyError(f'Invalid input name: {attr}')
+            raise AttributeError(f'Invalid input name: {attr}')
 
         if not isinstance(value, (Resource, ResourcePool)):
             value = Resource(value)
