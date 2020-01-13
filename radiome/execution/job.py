@@ -1,3 +1,5 @@
+from collections import Callable
+
 import cloudpickle
 from radiome.resource_pool import Resource, ResourcePool
 from radiome.utils import deterministic_hash, Hashable
@@ -70,7 +72,7 @@ class Job(Hashable):
 
 class PythonJob(Job):
 
-    def __init__(self, function, reference=None):
+    def __init__(self, function: Callable, reference=None):
         super().__init__(reference)
         self._function = function
 

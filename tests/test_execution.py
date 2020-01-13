@@ -225,3 +225,4 @@ class TestExecution(TestCase):
         b = ({'b': 'a', 'a': 'b'}, set([5, 4, 3, 2, 1]))
 
         self.assertEqual(hash(Content(a)), hash(Content(b)))
+
