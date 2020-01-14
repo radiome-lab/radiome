@@ -18,27 +18,46 @@ class DependencySolver:
     def graph(self):
         G = nx.DiGraph(resource_pool=self._resource_pool)
 
+        instances = {}
+
         extra_dependencies = set()
         for key, resource in self._resource_pool:
+            resource_id = id(resource)
             references = {key}
-            if resource in G:
-                references |= G.node[resource]['references']
 
-            G.add_node(resource, references=references)
+            if resource_id not in instances:
+                instances[resource_id] = resource
+
+            if resource_id in G:
+                references |= G.node[resource_id]['references']
+
+            G.add_node(resource_id, job=resource, references=references)
 
             for field, dep in resource.dependencies.items():
-                G.add_edge(dep, resource, field=field)
-                if dep not in extra_dependencies:
-                    extra_dependencies |= {dep}
+                dep_id = id(dep)
 
-        observed_dependencies = set()
+                if dep_id not in G:
+                    G.add_node(dep_id, job=dep)
+                G.add_edge(dep_id, resource_id, field=field)
+
+                if dep_id not in instances:
+                    instances[dep_id] = dep
+
+                if dep_id not in extra_dependencies:
+                    extra_dependencies |= {dep_id}
+
         while extra_dependencies:
-            resource = extra_dependencies.pop()
-            observed_dependencies |= {resource}
+            resource_id = extra_dependencies.pop()
+            resource = instances[resource_id]
             for field, dep in resource.dependencies.items():
-                G.add_edge(dep, resource, field=field)
-                if dep not in observed_dependencies:
-                    extra_dependencies |= {dep}
+                dep_id = id(dep)
+                if dep_id not in G:
+                    G.add_node(dep_id, job=dep)
+                G.add_edge(dep_id, resource_id, field=field)
+
+                if dep_id not in instances:
+                    instances[dep_id] = dep
+                    extra_dependencies |= {dep_id}
 
         try:
             nx.find_cycle(G, orientation='original')
@@ -62,8 +81,9 @@ class DependencySolver:
 
         logger.info('Gathering resources')
         resource_pool = ResourcePool()
-        for resource, attr in self.graph.nodes.items():
-            if not isinstance(resource, ComputedResource):
+        for _, attr in self.graph.nodes.items():
+            job = attr['job']
+            if not isinstance(job, ComputedResource):
                 continue
 
             # Only get states which has references
@@ -71,12 +91,12 @@ class DependencySolver:
             if not references:
                 continue
 
-            if state.erred(resource):
-                result = InvalidResource(resource, state.err(resource))
-            elif not state.stored(resource):
-                result = InvalidResource(resource)
+            if state.erred(job):
+                result = InvalidResource(job, state.err(job))
+            elif not state.stored(job):
+                result = InvalidResource(job)
             else:
-                result = state.state(resource)
+                result = state.state(job)
 
             for key in attr.get('references', []):
                 resource_pool[key] = result

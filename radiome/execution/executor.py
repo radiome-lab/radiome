@@ -21,11 +21,12 @@ class Execution:
         SGs = (graph.subgraph(c) for c in nx.weakly_connected_components(graph))
 
         for SG in SGs:
-            for resource in reversed(list(nx.topological_sort(SG))):
-                if not isinstance(resource, Job):
+            for resource in nx.topological_sort(SG):
+                job = SG.node[resource]['job']
+                if not isinstance(job, Job):
                     continue
                 try:
-                    self.schedule(state, resource)
+                    self.schedule(state, job)
                 except Exception as e:
                     logger.exception(e)
 

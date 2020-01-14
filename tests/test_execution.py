@@ -226,3 +226,29 @@ class TestExecution(TestCase):
 
         self.assertEqual(hash(Content(a)), hash(Content(b)))
 
+    def test_cycle(self):
+
+        rp = ResourcePool()
+
+        file_basename1 = PythonJob(function=basename, reference='basename1')
+        file_basename2 = PythonJob(function=basename, reference='basename2')
+        file_basename3 = PythonJob(function=basename, reference='basename3')
+        file_basename2.path = file_basename1.path
+        file_basename3.path = file_basename2.path
+        file_basename1.path = file_basename3.path
+
+        rp[R('T1w')] = file_basename1.path
+
+        with self.assertRaises(ValueError):
+            G = DependencySolver(rp).graph
+
+
+        rp = ResourcePool()
+
+        file_basename1 = PythonJob(function=basename, reference='basename1')
+        file_basename1.path = file_basename1.path
+
+        rp[R('T1w')] = file_basename1.path
+
+        with self.assertRaises(ValueError):
+            G = DependencySolver(rp).graph

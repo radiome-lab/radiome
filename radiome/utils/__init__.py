@@ -21,7 +21,9 @@ def _nested_repr(obj):
 
 
 def deterministic_hash(obj):
-    return hashlib.sha256(_nested_repr(obj).encode('UTF-8')).hexdigest()
+    hasher = hashlib.blake2s(digest_size=8)
+    hasher.update(_nested_repr(obj).encode('UTF-8'))
+    return hasher.hexdigest()
 
 
 class Hashable:
