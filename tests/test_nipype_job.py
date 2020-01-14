@@ -5,7 +5,7 @@ from nipype.interfaces import base as nib
 
 from radiome.execution import DependencySolver
 from radiome.execution.nipype import NipypeJob
-from radiome.resource_pool import ResourcePool, ResourceKey, Resource
+from radiome.resource_pool import Resource, ResourceKey, ResourcePool
 
 
 class InputSpec(nib.TraitedSpec):
@@ -29,29 +29,18 @@ class EngineTestInterface(nib.SimpleInterface):
 
 
 class TestNipypeJob(unittest.TestCase):
+
     def test_connect(self):
         rp = ResourcePool()
+
         mod2 = NipypeJob(EngineTestInterface(), reference="mod2")
         mod1 = NipypeJob(EngineTestInterface(), reference="mod1")
         mod2.input1 = mod1.output1
+
         rp[ResourceKey('T1w')] = mod2.output1
+
         g = DependencySolver(rp).graph
-        self.assertIn(mod1, g.nodes)
-        self.assertIn(mod2, g.nodes)
-        self.assertTrue(networkx.algorithms.bidirectional_dijkstra(g, mod1, mod2))
 
-    def test_connect_cycle(self):
-        rp = ResourcePool()
-        mod3 = NipypeJob(EngineTestInterface(), reference="mod3")
-        mod2 = NipypeJob(EngineTestInterface(), reference="mod2")
-        mod1 = NipypeJob(EngineTestInterface(), reference="mod1")
-        mod3.input1 = mod2.output1
-        mod2.input1 = mod1.output1
-        mod1.input1 = mod3.output1
-        rp[ResourceKey('T1w')] = mod1.output1
-        # TODO: RecursionError: maximum recursion depth exceeded
-        # g = DependencySolver(rp).graph
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertIn(id(mod1), g.nodes)
+        self.assertIn(id(mod2), g.nodes)
+        self.assertTrue(networkx.algorithms.bidirectional_dijkstra(g, id(mod1), id(mod2)))
