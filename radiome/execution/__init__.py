@@ -42,7 +42,7 @@ class DependencySolver:
 
                 if dep_id not in instances:
                     instances[dep_id] = dep
-                    
+
                 if dep_id not in extra_dependencies:
                     extra_dependencies |= {dep_id}
 

@@ -5,7 +5,7 @@ from nipype.interfaces import base as nib
 
 from radiome.execution import DependencySolver
 from radiome.execution.nipype import NipypeJob
-from radiome.resource_pool import Resource, ResourceKey, ResourcePool
+from radiome.resource_pool import ResourceKey, ResourcePool
 
 
 class InputSpec(nib.TraitedSpec):

@@ -240,7 +240,7 @@ class TestExecution(TestCase):
         rp[R('T1w')] = file_basename1.path
 
         with self.assertRaises(ValueError):
-            DependencySolver(rp).graph
+            G = DependencySolver(rp).graph
 
 
         rp = ResourcePool()
@@ -251,4 +251,4 @@ class TestExecution(TestCase):
         rp[R('T1w')] = file_basename1.path
 
         with self.assertRaises(ValueError):
-            DependencySolver(rp).graph
+            G = DependencySolver(rp).graph
