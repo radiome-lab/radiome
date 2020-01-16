@@ -2,8 +2,8 @@
 radiome
 =======
 
-.. image:: https://travis-ci.org/radiome-flow/radiome.svg?branch=master
-    :target: https://travis-ci.org/radiome-flow/radiome
+.. image:: https://travis-ci.org/radiome-lab/radiome.svg?branch=master
+    :target: https://travis-ci.org/radiome-lab/radiome
 
 .. image:: https://codecov.io/gh/radiome-flow/radiome/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/radiome-flow/radiome
