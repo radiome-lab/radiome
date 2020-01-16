@@ -1,0 +1,17 @@
+name: sync wiki
+
+on: [push]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: docker://decathlon/wiki-page-creator-action:2.0.0
+        env:
+          GH_PAT: ${{ secrets.DOCS_PUSH }}
+          ACTION_MAIL: puzhao@utexas.edu
+          ACTION_NAME: puorc
+          OWNER: radiome-lab
+          REPO_NAME: radiome
+          MD_FOLDER: wiki
