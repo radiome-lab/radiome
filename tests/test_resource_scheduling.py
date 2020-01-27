@@ -74,8 +74,8 @@ if __name__ == '__main__':
     cluster = LocalCluster(
         processes=False,
         n_workers=2,
-        threads_per_worker=2,
-        resources={"memory": 10, "cpu": 2},
+        threads_per_worker=10,
+        resources={"memory": 30, "cpu": 10},
     )
     
     client = Client(cluster.scheduler.address)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
         client.submit(
             timestamp, i, 
             # resources={"memory": 6},
-            resources={"cpu": 2, "memory": 2},
+            resources={"cpu": 2, "memory": 10},
             pure=False,
         )
         for i in range(20)
