@@ -82,9 +82,9 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    def timestamp(delay, i):
+    def timestamp(i):
         import time
-        time.sleep(delay)
+        time.sleep(5)
         worker = get_worker()
         return {
             "time": time.time(),
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
     futures = [
         client.submit(
-            timestamp, 3, i, 
+            timestamp, i, 
             # resources={"memory": 6},
             resources={"cpu": 2, "memory": 2},
             pure=False,
