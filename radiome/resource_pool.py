@@ -133,7 +133,7 @@ class ResourceKey(Hashable):
     _SS = re.escape(STRAT_SEP)
     FORMAT = rf'([^{_KVS}{_ES}]+{_KVS}[^{_ES}{_SS}]+(_ES[^{_KVS}{_ES}]+{_KVS}[^{_ES}{_SS}]+)*)?([^{_KVS}{_ES}]+)?'
 
-    supported_entities: List[str] = ['sub', 'ses', 'run', 'task',
+    supported_entities: List[str] = ['sub', 'ses', 'run', 'task', 'acq',
                                      'space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
 
@@ -302,7 +302,7 @@ class ResourceKey(Hashable):
             raise ValueError(f'Entities are not subsets: {self_entities_keys} '
                              f'and {other_entities_keys}')
 
-        for k, v in self._entities:
+        for k, v in self._entities.items():
             if k not in other_entities:
                 return False
             if v != other_entities[k]:
@@ -570,6 +570,17 @@ class ResourcePool:
             return self.extract(*key)
 
         if isinstance(key, ResourceKey):
+
+            if key.isfilter():
+                rp = ResourcePool()
+
+                for rkey in self._pool:
+                    if rkey not in key:
+                        continue
+                    rp[rkey] = self[rkey]
+
+                return rp
+                
             try:
                 return self._pool[key]
             except KeyError:
