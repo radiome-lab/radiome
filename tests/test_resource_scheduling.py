@@ -46,6 +46,27 @@ from multiprocessing import Process, freeze_support
 #         return return_value
 
 
+# def condition(iteration, previous=None):
+#     if previous is None:
+#         return True
+#     if previous < 20:
+#         return True
+#     return False
+
+# def body(iteration, previous=None):
+#     if previous == 1:
+#         return previous + 1
+#     if previous is not None:
+#         return previous + iteration
+#     return 0
+
+# while_node = While(condition, body, max_iterations=10)
+
+# futures = [client.submit(while_node)]
+
+# results = client.gather(futures)
+# print(results)
+
 if __name__ == '__main__':
 
     freeze_support()
@@ -60,27 +81,6 @@ if __name__ == '__main__':
     client = Client(cluster.scheduler.address)
 
     start = time.time()
-
-    # def condition(iteration, previous=None):
-    #     if previous is None:
-    #         return True
-    #     if previous < 20:
-    #         return True
-    #     return False
-
-    # def body(iteration, previous=None):
-    #     if previous == 1:
-    #         return previous + 1
-    #     if previous is not None:
-    #         return previous + iteration
-    #     return 0
-
-    # while_node = While(condition, body, max_iterations=10)
-
-    # futures = [client.submit(while_node)]
-
-    # results = client.gather(futures)
-    # print(results)
 
     def timestamp(delay, i):
         import time
