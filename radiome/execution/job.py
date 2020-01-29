@@ -1,7 +1,9 @@
+import logging
 import cloudpickle
 from radiome.resource_pool import Resource, ResourcePool
 from radiome.utils import deterministic_hash, Hashable
 
+logger = logging.getLogger('radiome.execution.job')
 
 class Job(Hashable):
     _reference = None
