@@ -8,12 +8,24 @@ class Job(Hashable):
     _inputs = None
     _hashinputs = None
 
+    _estimates = None
+
     def __init__(self, reference=None):
         self._reference = reference
         self._inputs = {}
 
+        if not self._estimates:
+            self._estimates = {
+                'cpu': 1,
+                'memory': 3,
+                'storage': 5/1024,
+            }
+
     def __str__(self):
-        job_repr = f'{self.__shorthash__()},{self._reference}' if self._reference else f'{self.__shorthash__()}'
+        if self._reference:
+            job_repr = f'{self.__shorthash__()},{self._reference}'
+        else:
+            job_repr = f'{self.__shorthash__()}'
         return f'{self.__class__.__name__}({job_repr})'
 
     def __repr__(self):
@@ -23,8 +35,14 @@ class Job(Hashable):
         if self._hashinputs:
             inputs = self._hashinputs
         else:
-            inputs = {k: deterministic_hash(v) for k, v in self._inputs.items()}
-        return self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0])))
+            inputs = {
+                k: deterministic_hash(v)
+                for k, v in self._inputs.items()
+            }
+        return (
+            self._reference,
+            tuple(list(sorted(inputs.items(), key=lambda i: i[0])))
+        )
 
     def __call__(self, **kwargs):
         raise NotImplementedError()
@@ -96,15 +114,22 @@ class PythonJob(Job):
 
 class ComputedResource(Job, Resource):
 
-    def __init__(self, content):
-        self._content = content
-        self._inputs = {content[1]: content[0]}
+    def __init__(self, job, field=None):
+        self._job = job
+        self._field = field
+        self._content = (job, field)
+        self._inputs = {'state': job}
+        self._estimates = {
+            'cpu': 1,
+            'memory': .2,
+            'storage': 5/1024,
+        }
 
     def __str__(self):
-        return f'Computed({self._content[0].__str__()},{self._content[1]})'
+        return f'Computed({self._job.__str__()},{self._field})'
 
     def __repr__(self):
-        return f'Computed({self._content[0].__str__()},{self._content[1]},{self.__shorthash__()})'
+        return f'Computed({self._job.__str__()},{self._field},{self.__shorthash__()})'
 
     def __hashcontent__(self):
         if self._hashinputs:
@@ -113,13 +138,16 @@ class ComputedResource(Job, Resource):
             inputs = {k: deterministic_hash(v) for k, v in self._inputs.items()}
         return self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0])))
 
-    def __call__(self, **state):
-        return state[self._content[1]][self._content[1]]
+    def __call__(self, state):
+        if self._field:
+            return state[self._field]
+        return state
 
     def __getstate__(self):
         # Do not store other jobs recursively
         return {
             '_reference': self._reference,
+            '_field': self._field,
             '_hashinputs': {
                 k: deterministic_hash(v)
                 for k, v in self._inputs.items()
@@ -128,6 +156,6 @@ class ComputedResource(Job, Resource):
 
     def __setstate__(self, state):
         self._reference = state['_reference']
+        self._field = state['_field']
         self._hashinputs = state['_hashinputs']
-        inputs = list(self._hashinputs.items())[0]
-        self._content = (inputs[1], inputs[0])
+        self._content = (self._hashinputs['state'], self._field)
