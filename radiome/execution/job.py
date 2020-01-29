@@ -68,7 +68,7 @@ class Job(Hashable):
             else:
                 raise AttributeError(f'Invalid input/output name: {attr}')
 
-        return ComputedResource((self, attr))
+        return ComputedResource(job=self, field=attr)
 
     def __setattr__(self, attr, value):
         if attr.startswith('_'):
