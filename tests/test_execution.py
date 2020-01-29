@@ -86,7 +86,7 @@ class TestExecution(TestCase):
             file_join_path.base = file_reversed.reversed
             srp[R('T1w', label='crazypath')] = file_join_path.path
 
-        for executor in [Execution, DaskExecution]:
+        for executor in executors:
 
             res_rp = DependencySolver(self.rp).execute(executor=executor())
 
