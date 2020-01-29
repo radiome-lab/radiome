@@ -116,9 +116,11 @@ class ComputedResource(Job, Resource):
 
     def __init__(self, job, field=None):
         self._job = job
+        self._hashjob = self._strjob = None
         self._field = field
         self._content = (job, field)
         self._inputs = {'state': job}
+
         self._estimates = {
             'cpu': 1,
             'memory': .2,
@@ -126,17 +128,25 @@ class ComputedResource(Job, Resource):
         }
 
     def __str__(self):
-        return f'Computed({self._job.__str__()},{self._field})'
+        if self._strjob:
+            job = self._strjob
+        else:
+            job = self._job.__str__()
+        return f'Computed({job},{self._field})'
 
     def __repr__(self):
-        return f'Computed({self._job.__str__()},{self._field},{self.__shorthash__()})'
+        if self._strjob:
+            job = self._strjob
+        else:
+            job = self._job.__str__()
+        return f'Computed({job},{self._field},{self.__shorthash__()})'
 
     def __hashcontent__(self):
-        if self._hashinputs:
-            inputs = self._hashinputs
+        if self._hashjob:
+            job = self._hashjob
         else:
-            inputs = {k: deterministic_hash(v) for k, v in self._inputs.items()}
-        return self._reference, tuple(list(sorted(inputs.items(), key=lambda i: i[0])))
+            job = deterministic_hash(self._job)
+        return self._reference, job, self._field
 
     def __call__(self, state):
         if self._field:
@@ -148,15 +158,13 @@ class ComputedResource(Job, Resource):
         return {
             '_reference': self._reference,
             '_field': self._field,
-            '_hashinputs': {
-                k: deterministic_hash(v)
-                for k, v in self._inputs.items()
-            }
+            '_hashjob': deterministic_hash(self._job),
+            '_strjob': self._job.__str__(),
         }
 
     def __setstate__(self, state):
         self._reference = state['_reference']
-        self._hashinputs = state['_hashinputs']
+        self._hashjob = state['_hashjob']
+        self._strjob = state['_strjob']
         self._field = state['_field']
-        self._job = self._hashinputs['state']
-        self._content = (self._job, self._field)
+        self._content = (self._hashjob, self._field)
