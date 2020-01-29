@@ -156,6 +156,7 @@ class ComputedResource(Job, Resource):
 
     def __setstate__(self, state):
         self._reference = state['_reference']
-        self._field = state['_field']
         self._hashinputs = state['_hashinputs']
-        self._content = (self._hashinputs['state'], self._field)
+        self._field = state['_field']
+        self._job = self._hashinputs['state']
+        self._content = (self._job, self._field)
