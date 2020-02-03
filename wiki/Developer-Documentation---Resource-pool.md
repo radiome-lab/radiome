@@ -1,0 +1,1 @@
+this document describes the resource pool

@@ -502,7 +502,7 @@ class Resource(Hashable):
         return f'Resource({self._content})'
 
     def __repr__(self) -> str:
-        return f'Resource({self.__shorthash__()})'
+        return f'Resource({self._content})'
 
     def __call__(self, **state: Any) -> Any:
         return self._content
@@ -563,6 +563,10 @@ class ResourcePool:
             if rp_key in key:
                 return True
         return False
+
+    @property
+    def raw(self):
+        return self._pool
 
     def __getitem__(self, key: Union[ResourceKey, str, List[str]]) -> Union[Resource, Dict]:
 
@@ -727,24 +731,8 @@ class ResourcePool:
                     for strategy_extracted_resource in strategy_extracted_resources:
 
                         # replace wildcard with the actual value of branching
-                        branched_resource = ResourceKey(
-                            resource,
-                            suffix=strategy_extracted_resource.suffix,
-                            **{
-                                **{
-                                    bk: bv if bv != "*" else strategy_extracted_resource[bk]
-                                    for bk, bv in {**expected_resource_unbranching, **expected_branching}.items()
-                                    if bk in strategy_extracted_resource.entities
-                                },
-                                **{
-                                    k: v
-                                    for k, v in strategy_extracted_resource.entities.items()
-                                    if k in resource.entities
-                                }
-                            }
-                        )
-
-                        if branched_resource in extracted_resource_pool:
+                        branched_resource = strategy_extracted_resource
+                        if branched_resource in extracted_resource_pool.raw:
                             if self[strategy_extracted_resource] != extracted_resource_pool[branched_resource]:
                                 raise ValueError(f'There was an error extracting the resource {branched_resource}: '
                                                  f'Adressing different resources: {self[strategy_extracted_resource]} '
