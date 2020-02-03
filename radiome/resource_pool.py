@@ -499,7 +499,7 @@ class Resource(Hashable):
         return self._content,
 
     def __str__(self) -> str:
-        return f'Resource({self.__shorthash__()})'
+        return f'Resource({self._content})'
 
     def __repr__(self) -> str:
         return f'Resource({self.__shorthash__()})'
@@ -511,7 +511,6 @@ class Resource(Hashable):
     def content(self) -> Any:
         return self._content
 
-    @property
     def dependencies(self) -> Dict[str, Any]:
         return {}
 
@@ -521,11 +520,12 @@ class InvalidResource(Resource):
     def __init__(self, resource: Resource, exception: Exception=None):
         self._resource = resource
         self._exception = exception
+        self._content = None
 
     def __hashcontent__(self) -> Tuple:
         return self._resource, self._exception
 
-    def __call__(self, **state) -> Any:
+    def __call__(self, **state: Any) -> Any:
         return self.content
 
     @property
