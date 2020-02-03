@@ -1,5 +1,5 @@
-nipype==1.2.3
-dask==2.3.0
-distributed==2.1.0
-networkx==2.3
+dask==2.10.1
+distributed==2.10.0
 cloudpickle==1.2.2
+networkx==2.4
+nipype==1.4.1
