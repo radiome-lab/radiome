@@ -1,14 +1,14 @@
 import logging
 import cloudpickle
 from radiome.resource_pool import Resource, ResourcePool
-from radiome.utils import deterministic_hash, Hashable
+from radiome.utils import Hashable
 
 logger = logging.getLogger('radiome.execution.job')
+
 
 class Job(Hashable):
     _reference = None
     _inputs = None
-    _hashinputs = None
 
     _estimates = None
 
@@ -28,19 +28,17 @@ class Job(Hashable):
             job_repr = f'{self.__shorthash__()},{self._reference}'
         else:
             job_repr = f'{self.__shorthash__()}'
+            
         return f'{self.__class__.__name__}({job_repr})'
 
     def __repr__(self):
         return str(self)
 
     def __hashcontent__(self):
-        if self._hashinputs:
-            inputs = self._hashinputs
-        else:
-            inputs = {
-                k: deterministic_hash(v)
-                for k, v in self._inputs.items()
-            }
+        inputs = {
+            k: FakeJob(v) if isinstance(v, Job) else v
+            for k, v in self._inputs.items()
+        }
         return (
             self._reference,
             tuple(list(sorted(inputs.items(), key=lambda i: i[0])))
@@ -53,15 +51,19 @@ class Job(Hashable):
         # Do not store other jobs recursively
         return {
             '_reference': self._reference,
-            '_hashinputs': {
-                k: deterministic_hash(v)
+            '_inputs': {
+                k: FakeJob(v) if isinstance(v, Job) else v
                 for k, v in self._inputs.items()
-            }
+            },
+            '_estimates': self._estimates,
+            '_hash': self._hash,
         }
 
     def __setstate__(self, state):
         self._reference = state['_reference']
-        self._hashinputs = state['_hashinputs']
+        self._inputs = state['_inputs']
+        self._estimates = state['_estimates']
+        self._hash = state['_hash']
 
     def __getattr__(self, attr):
         if attr.startswith('_'):
@@ -79,14 +81,47 @@ class Job(Hashable):
 
         if isinstance(value, (Resource, ResourcePool)):
             self._inputs[attr] = value
+            self._hash = None
             return
 
         raise AttributeError(f'Invalid input type: {type(value)}. It must be a Resource or ResourcePool')
 
-    @property
     def dependencies(self):
         return self._inputs.copy()
 
+    def resources(self):
+        return self._estimates.copy()
+
+
+class FakeJob(Job):
+    def __init__(self, job):
+        super().__init__(job._reference)
+        self._hash = job.__longhash__()
+        self._repr = job.__repr__()
+        self._str = job.__str__()
+
+    def __longhash__(self):
+        return self._hash
+
+    def __str__(self):
+        return self._str
+
+    def __repr__(self):
+        return self._repr
+
+    def __getstate__(self):
+        return {
+            '_reference': self._reference,
+            '_hash': self._hash,
+            '_repr': self._repr,
+            '_str': self._str,
+        }
+
+    def __setstate__(self, state):
+        self._reference = state['_reference']
+        self._hash = state['_hash']
+        self._repr = state['_repr']
+        self._str = state['_str']
 
 class PythonJob(Job):
 
@@ -118,7 +153,6 @@ class ComputedResource(Job, Resource):
 
     def __init__(self, job, field=None):
         self._job = job
-        self._hashjob = self._strjob = None
         self._field = field
         self._content = (job, field)
         self._inputs = {'state': job}
@@ -130,25 +164,15 @@ class ComputedResource(Job, Resource):
         }
 
     def __str__(self):
-        if self._strjob:
-            job = self._strjob
-        else:
-            job = self._job.__str__()
+        job = self._job.__str__()
         return f'Computed({job},{self._field})'
 
     def __repr__(self):
-        if self._strjob:
-            job = self._strjob
-        else:
-            job = self._job.__str__()
+        job = self._job.__repr__()
         return f'Computed({job},{self._field},{self.__shorthash__()})'
 
     def __hashcontent__(self):
-        if self._hashjob:
-            job = self._hashjob
-        else:
-            job = deterministic_hash(self._job)
-        return self._reference, job, self._field
+        return self._reference, self._job, self._field
 
     def __call__(self, state):
         if self._field:
@@ -160,13 +184,14 @@ class ComputedResource(Job, Resource):
         return {
             '_reference': self._reference,
             '_field': self._field,
-            '_hashjob': deterministic_hash(self._job),
-            '_strjob': self._job.__str__(),
+            '_job': FakeJob(self._job),
+            '_estimates': self._estimates,
         }
 
     def __setstate__(self, state):
+        self._estimates = state['_estimates']
         self._reference = state['_reference']
-        self._hashjob = state['_hashjob']
-        self._strjob = state['_strjob']
         self._field = state['_field']
-        self._content = (self._hashjob, self._field)
+        self._job = state['_job']
+        self._content = (self._job, self._field)
+        self._inputs = {'state': self._job}
