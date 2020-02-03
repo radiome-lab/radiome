@@ -1,13 +1,13 @@
-from typing import Any, Union, List, Tuple, Set, Dict, Iterator
-from collections import OrderedDict
 import itertools
+import os
 import re
+from collections import OrderedDict
+from typing import Any, Union, List, Tuple, Set, Dict, Iterator
 
-from radiome.utils import Hashable
+from radiome.utils import Hashable, s3
 
 
 class Strategy(Hashable):
-
     KEYVAL_SEP = '-'
     FORK_SEP = '+'
 
@@ -74,6 +74,7 @@ class Strategy(Hashable):
 
     def __bool__(self) -> bool:
         return len(self) > 0
+
     __nonzero__ = __bool__
 
     def __iter__(self) -> Iterator[Tuple[str, str]]:
@@ -288,7 +289,7 @@ class ResourceKey(Hashable):
             if not self_strategy_keys.issubset(other_strategy_keys) and \
                 not other_strategy_keys.issubset(self_strategy_keys):
                 raise ValueError(f'Strategy are not subsets: {self_strategy_keys} '
-                                f'and {other_strategy_keys}')
+                                 f'and {other_strategy_keys}')
 
             return self.strategy < other.strategy
 
@@ -343,16 +344,16 @@ class ResourceKey(Hashable):
             desc = f'desc{ResourceKey.KEYVAL_SEP}{desc}'
 
         return ResourceKey.ENTITY_SEP.join(filter(None,
-            [
-                ResourceKey.KEYVAL_SEP.join([entity, self._entities[entity]])
-                for entity in self.supported_entities
-                if entity in self._entities and entity != 'desc'
-            ]
-            +
-            ([desc] if desc else [])
-            +
-            [self._suffix]
-        ))
+                                                  [
+                                                      ResourceKey.KEYVAL_SEP.join([entity, self._entities[entity]])
+                                                      for entity in self.supported_entities
+                                                      if entity in self._entities and entity != 'desc'
+                                                  ]
+                                                  +
+                                                  ([desc] if desc else [])
+                                                  +
+                                                  [self._suffix]
+                                                  ))
 
     def keys(self) -> List[str]:
         """Get a list of keys of defined entities and strategy."""
@@ -516,9 +517,36 @@ class Resource(Hashable):
         return {}
 
 
+class FileResource(Resource):
+    def __init__(self, content: str, working_dir: str = None, aws_cred_path: str = None):
+        if content.lower().startswith("s3://"):
+            if working_dir is None or not os.path.exists(working_dir):
+                raise IOError(f'Cannot find the working directory {working_dir}')
+            if aws_cred_path is not None and not os.path.isfile(aws_cred_path):
+                raise IOError(f'Cannot find the cred {aws_cred_path}')
+            super().__init__(content)
+        elif os.path.isfile(content):
+            super().__init__(content)
+        else:
+            raise IOError(f'Cannot find the file {content}')
+        self._cwd = working_dir
+        self._aws_cred_path = aws_cred_path
+        self._cached = None
+
+    def __call__(self, *args):
+        if self.content.lower().startswith("s3://"):
+            if self._cached is not None and os.path.exists(self._cached):
+                return self._cached
+            else:
+                self._cached = s3.download_file(self.content, self._cwd, self._aws_cred_path)
+                return self._cached
+        else:
+            return self.content
+
+
 class InvalidResource(Resource):
 
-    def __init__(self, resource: Resource, exception: Exception=None):
+    def __init__(self, resource: Resource, exception: Exception = None):
         self._resource = resource
         self._exception = exception
 
@@ -535,7 +563,6 @@ class InvalidResource(Resource):
 
 
 class ResourcePool:
-
     _pool: Dict[ResourceKey, Resource]
     _pool_by_type: Dict[str, Dict[ResourceKey, Resource]]
     _pool_by_tag: Dict[str, Dict[ResourceKey, Resource]]
@@ -563,6 +590,10 @@ class ResourcePool:
             if rp_key in key:
                 return True
         return False
+
+    @property
+    def raw(self):
+        return self._pool
 
     def __getitem__(self, key: Union[ResourceKey, str, List[str]]) -> Union[Resource, Dict]:
 
@@ -716,24 +747,8 @@ class ResourcePool:
                     for strategy_extracted_resource in strategy_extracted_resources:
 
                         # replace wildcard with the actual value of branching
-                        branched_resource = ResourceKey(
-                            resource,
-                            suffix=strategy_extracted_resource.suffix,
-                            **{
-                                **{
-                                    bk: bv if bv != "*" else strategy_extracted_resource[bk]
-                                    for bk, bv in {**expected_resource_unbranching, **expected_branching}.items()
-                                    if bk in strategy_extracted_resource.entities
-                                },
-                                **{
-                                    k: v
-                                    for k, v in strategy_extracted_resource.entities.items()
-                                    if k in resource.entities
-                                }
-                            }
-                        )
-
-                        if branched_resource in extracted_resource_pool:
+                        branched_resource = strategy_extracted_resource
+                        if branched_resource in extracted_resource_pool.raw:
                             if self[strategy_extracted_resource] != extracted_resource_pool[branched_resource]:
                                 raise ValueError(f'There was an error extracting the resource {branched_resource}: '
                                                  f'Adressing different resources: {self[strategy_extracted_resource]} '

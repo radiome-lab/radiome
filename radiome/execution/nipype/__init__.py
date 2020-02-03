@@ -1,14 +1,12 @@
 import copy
 
-from radiome.resource_pool import Resource, ResourcePool
 from radiome.execution.job import Job, ComputedResource
-
-from nipype.interfaces.base import BaseInterface
+from radiome.resource_pool import Resource, ResourcePool
 
 
 class NipypeJob(Job):
 
-    def __init__(self, interface: BaseInterface, reference=None):
+    def __init__(self, interface, reference=None):
         super().__init__(reference=reference)
         self._interface = copy.deepcopy(interface)
 
