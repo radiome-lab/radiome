@@ -2,7 +2,7 @@ import logging
 import networkx as nx
 from radiome.resource_pool import ResourcePool, InvalidResource
 
-from .state import FileState
+from .state import FileState, MemoryState
 from .executor import Execution
 from .job import ComputedResource
 
@@ -29,11 +29,11 @@ class DependencySolver:
                 instances[resource_id] = resource
 
             if resource_id in G:
-                references |= G.node[resource_id]['references']
+                references |= G.nodes[resource_id]['references']
 
             G.add_node(resource_id, job=resource, references=references)
 
-            for field, dep in resource.dependencies.items():
+            for field, dep in resource.dependencies().items():
                 dep_id = id(dep)
 
                 if dep_id not in G:
@@ -49,7 +49,7 @@ class DependencySolver:
         while extra_dependencies:
             resource_id = extra_dependencies.pop()
             resource = instances[resource_id]
-            for field, dep in resource.dependencies.items():
+            for field, dep in resource.dependencies().items():
                 dep_id = id(dep)
                 if dep_id not in G:
                     G.add_node(dep_id, job=dep)
@@ -65,6 +65,13 @@ class DependencySolver:
         except nx.NetworkXNoCycle:
             pass
 
+        relabeling = {}
+        for resource in nx.topological_sort(G):
+            job = G.nodes[resource]['job']
+            jobid = id(job)
+            job.__update_hash__()
+            G.nodes[resource]['job'] = job
+
         return G
 
     def execute(self, executor=None, state=None):
@@ -75,28 +82,29 @@ class DependencySolver:
             executor = Execution()
 
         if not state:
-            state = FileState()
+            state = MemoryState()
 
-        executor.execute(state=state, graph=G)
+        results = executor.execute(state=state, graph=G)
 
         logger.info('Gathering resources')
         resource_pool = ResourcePool()
         for _, attr in self.graph.nodes.items():
+
             job = attr['job']
             if not isinstance(job, ComputedResource):
                 continue
+
+            job_hash = str(hash(job))
 
             # Only get states which has references
             references = attr.get('references', [])
             if not references:
                 continue
 
-            if state.erred(job):
-                result = InvalidResource(job, state.err(job))
-            elif not state.stored(job):
-                result = InvalidResource(job)
+            if job_hash in results:
+                result = results[job_hash]
             else:
-                result = state.state(job)
+                result = InvalidResource(job)
 
             for key in attr.get('references', []):
                 resource_pool[key] = result
