@@ -59,7 +59,7 @@ class FileState:
     def __init__(self, scratch=None):
         if not scratch:
             scratch = tempfile.mkdtemp(prefix='rdm.')
-        self._scratch = scratch
+        self._scratch = os.path.abspath(scratch)
 
         logger.info(f'Memoizing jobs to {scratch}')
 
