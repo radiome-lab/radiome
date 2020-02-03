@@ -54,6 +54,64 @@ class JobState:
         self._job = state['_job']
 
 
+
+class MemoryState:
+
+    def __init__(self):
+        self._state = {}
+        self._state_err = {}
+
+    def __contains__(self, job):
+        return self.stored(job)
+
+    def dir(self, job):
+        raise NotImplementedError()
+
+    def state(self, job):
+        if not self.stored(job):
+            raise ValueError(f'Job {job} not stored.')
+        return self._state[job]
+
+    def erred(self, job):
+        is_erred = job in self._state_err
+        logger.info(f'{job.__repr__()}: is erred: {is_erred}')
+        return is_erred
+
+    def stored(self, job):
+        is_stored = job in self._state
+        logger.info(f'{job.__repr__()}: is stored: {is_stored}')
+        return is_stored
+
+    def err(self, job):
+        if not self.erred(job):
+            raise ValueError(f'Job {job} not erred.')
+
+        return self._state_err[job]
+
+    def compute(self, job, *args, **kwargs):
+        logger_state.info(f'{job.__repr__()}: might compute')
+
+        if self.erred(job):
+            raise self.err(job)
+
+        if self.stored(job):
+            logger_state.info(f'{job.__repr__()}: loading stored')
+            return self._state[job]
+
+        logger_state.info(f'{job.__repr__()}: computing')
+        try:
+            if not kwargs and len(args) > 0 and isinstance(args[0], types.GeneratorType):
+                kwargs = dict(args[0])
+            state = job(**kwargs)
+            self._state[job] = state
+            logger_state.info(f'{job.__repr__()}: stored')
+            return state
+        except Exception as e:
+            logger_state.info(f'{job.__repr__()}: err')
+            self._state_err[job] = e
+            raise e
+
+
 class FileState:
 
     def __init__(self, scratch=None):
