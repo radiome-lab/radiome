@@ -13,14 +13,12 @@ from radiome.execution import DependencySolver
 from radiome.execution.executor import executors
 from radiome.execution.state import FileState
 
+from radiome.tests.case import TestWorkflowCase
 
-class TestWorkflow(TestCase):
 
-    def setUp(self):
-        self.olddir = os.getcwd()
-        self.scratch = tempfile.mkdtemp(prefix='rdm.')
-        os.chdir(self.scratch)
+class TestWorkflow(TestWorkflowCase):
 
+    def setUpData(self):
         self.subs = [
             's3://fcp-indi/data/Projects/RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/anat/sub-A00008326_ses-BAS1_T1w.nii.gz',
             's3://fcp-indi/data/Projects/RocklandSample/RawDataBIDSLatest/sub-A00008399/ses-BAS1/anat/sub-A00008399_ses-BAS1_T1w.nii.gz',
@@ -67,9 +65,3 @@ class TestWorkflow(TestCase):
                     nb.load(res_rp[R(f'sub-{sub}_ses-BAS1_T1w')]()).shape,
                     nb.load(res_rp[R(f'sub-{sub}_ses-BAS1_label-initial_T1w')]()).shape
                 )
-
-        print(timing)
-
-    def tearDown(self):
-        shutil.rmtree(self.scratch)
-        os.chdir(self.olddir)

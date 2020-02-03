@@ -55,7 +55,14 @@ setup(
     include_package_data=True,
     keywords='radiome',
     name='radiome',
-    packages=find_packages(include=['radiome', 'radiome.*']),
+    packages=[
+        p
+        for p in find_packages(
+            include=['radiome', 'radiome.*'],
+            exclude=['tests']
+        )
+        if 'tests' not in p.split('.')
+    ],
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
