@@ -14,7 +14,7 @@ def get_profile_credentials(path: str, profile_name='default'):
         aws_access_key_id = config.get(profile_name, 'aws_access_key_id')
         aws_secret_access_key = config.get(profile_name, 'aws_secret_access_key')
     except (ParsingError, NoSectionError, NoOptionError):
-        logger.error(f'Error parsing config file: {path}')
+        logger.error(f'Error parsing config file: {path}.')
         raise
     return {
         'key': aws_access_key_id,
@@ -30,5 +30,5 @@ def download_file(url: str, save_path: str, cred_path: str = None):
     else:
         s3 = s3fs.S3FileSystem(**get_profile_credentials(cred_path))
     s3.get(url, os.path.join(save_path, os.path.basename(url)))
-    logger.info(f'Download {url} to {save_path}.')
+    logger.debug(f'Downloaded {url} to {save_path}.')
     return os.path.join(save_path, os.path.basename(url))

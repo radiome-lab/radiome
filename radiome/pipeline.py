@@ -22,27 +22,26 @@ def load_resource(inputs_dir: str, output_dir: str, resource_pool: ResourcePool,
 
     for root, dirs, files in walk(inputs_dir, topdown=False):
         for f in files:
-            logger.info(f'Processing file {root} {f}')
+            logger.debug(f'Processing file {root} {f}')
             if 'nii' in f:
                 filename: str = f.split('.')[0]
-                if participant_label is None:
+                if participant_label is None or any([label in filename for label in participant_label]):
                     resource_pool[filename] = FileResource(f's3://{root}/{f}' if is_s3 else os.path.join(root, f),
                                                            output_dir)
-                else:
-                    if any([label in filename for label in participant_label]):
-                        resource_pool[filename] = FileResource(f's3://{root}/{f}' if is_s3 else os.path.join(root, f),
-                                                               output_dir)
+                    logger.info(f'Added {filename} to the resource pool.')
 
 
-def build(inputs_dir: str, output_dir: str, config_file_dir: str, participant_label: List[str] = None):
+def build(inputs_dir: str, output_dir: str, config_file_dir: str, participant_label: List[str] = None, **kwargs):
     rp = ResourcePool()
     load_resource(inputs_dir, output_dir, rp, participant_label)
     context = {
-        'working_dir': output_dir
+        'working_dir': output_dir,
+        **kwargs
     }
     with open(config_file_dir, 'r') as f:
         data: List = yaml.safe_load(f)
-        logger.info(f'Load config file {config_file_dir}')
+        logger.info(f'Loaded the config file {config_file_dir}.')
+    # TODO more doc on schema format
     for workflow in data:
         if not isinstance(workflow, dict) or len(workflow) != 1:
             raise ValueError('Invalid config schema.')
