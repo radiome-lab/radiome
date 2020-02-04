@@ -1,4 +1,3 @@
-#using neurodebian runtime as parent image
 FROM neurodebian:xenial-non-free
 MAINTAINER The C-PAC Team <cnl@childmind.org>
 
@@ -102,4 +101,5 @@ RUN conda update -n base -c defaults conda
 COPY . /code
 WORKDIR /code
 RUN pip install -e '.'
+RUN chmod +x /code/radiome/cli.py
 ENTRYPOINT ['/code/radiome/cli.py']

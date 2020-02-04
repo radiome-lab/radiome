@@ -50,3 +50,4 @@ def build(inputs_dir: str, output_dir: str, config_file_dir: str, participant_la
                 raise ValueError('Invalid config schema.')
             wf.load(item)(config, rp, context)
     DependencySolver(rp).execute(executor=DaskExecution(), state=FileState(output_dir))
+    # TODO: Move file from resource pool

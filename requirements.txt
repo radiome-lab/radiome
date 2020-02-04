@@ -49,5 +49,5 @@ toolz==0.10.0
 tornado==6.0.3
 traits==5.2.0
 urllib3==1.25.8
-xvfbwrapper=0.2.9
+xvfbwrapper==0.2.9
 zict==1.0.0
