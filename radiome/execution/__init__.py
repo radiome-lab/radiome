@@ -2,7 +2,6 @@ import logging
 import networkx as nx
 from radiome.resource_pool import ResourcePool, InvalidResource
 
-from .state import FileState, MemoryState
 from .executor import Execution
 from .job import ComputedResource
 
@@ -74,17 +73,14 @@ class DependencySolver:
 
         return G
 
-    def execute(self, executor=None, state=None):
+    def execute(self, executor=None):
 
         G = self.graph
 
         if not executor:
             executor = Execution()
 
-        if not state:
-            state = MemoryState()
-
-        results = executor.execute(state=state, graph=G)
+        results = executor.execute(graph=G)
 
         logger.info('Gathering resources')
         resource_pool = ResourcePool()
@@ -96,7 +92,6 @@ class DependencySolver:
 
             job_hash = hash(job)
 
-            # Only get states which has references
             references = attr.get('references', [])
             if not references:
                 continue

@@ -5,9 +5,6 @@ from radiome.execution.executor import Execution, DaskExecution, executors
 from radiome.execution.job import PythonJob
 from radiome.utils import Hashable
 
-from .helpers import StateProfiler
-
-
 import logging
 FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(format=FORMAT)

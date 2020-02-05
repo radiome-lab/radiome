@@ -4,15 +4,12 @@ import tempfile
 import networkx as nx
 from distributed import Client, LocalCluster, Lock, Future, get_client, get_worker
 from radiome.execution.job import Job
-from .dask import DaskJobState
-
+import cloudpickle
+from distributed.protocol.serialize import register_serialization_family
 
 logger = logging.getLogger('radiome.execution.executor')
 logger_lock = logger.getChild('lock')
 
-
-import cloudpickle
-from distributed.protocol.serialize import register_serialization_family
 
 def cloudpickle_dumps(x):
     header = {'serializer': 'cloudpickle'}
@@ -86,7 +83,6 @@ class DaskExecution(Execution):
 
         if not client:
             cluster = LocalCluster(
-                # TODO review resources
                 resources={"memory": 30, "cpu": 10, "storage": 20},
                 n_workers=10,
                 threads_per_worker=10,
@@ -121,7 +117,6 @@ class DaskExecution(Execution):
         for SG in SGs:
             futures += [self._client.submit(
                 self.execute_subgraph, 
-                # state=state,
                 SG=SG,
                 pure=False,
                 resources={
@@ -133,7 +128,8 @@ class DaskExecution(Execution):
                 }
             )]
 
-        logger.info(f'Joining execution of {len(futures)} executions: {list(str(s.key) for s in futures)}')
+        logger.info(f'Joining execution of {len(futures)} executions:'
+                    f' {list(str(s.key) for s in futures)}')
 
         results = {
             k: v
@@ -144,7 +140,6 @@ class DaskExecution(Execution):
 
     def execute_subgraph(
         self,
-        # state,
         SG
     ):
         futures = {}
@@ -162,7 +157,6 @@ class DaskExecution(Execution):
 
         for resource in nx.topological_sort(SG):
             job = SG.nodes[resource]['job']
-            # state_job = DaskJobState(self._client, state, job)
             state_job = job
 
             if not isinstance(job, Job):
