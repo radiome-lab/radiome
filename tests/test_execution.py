@@ -86,7 +86,7 @@ class TestExecution(TestCase):
             file_join_path.base = file_reversed.reversed
             srp[R('T1w', label='crazypath')] = file_join_path.path
 
-        for executor in executors:
+        for executor in executors[1:]:
 
             res_rp = DependencySolver(self.rp).execute(executor=executor())
 
@@ -143,16 +143,18 @@ class TestExecution(TestCase):
 
         wait = 3
 
+        rp = ResourcePool()
+
         delayed1 = PythonJob(function=timestamp, reference='time1')
         delayed1.delay = Resource(wait)
-        self.rp[R('T1w', label='time1')] = delayed1.time
+        rp[R('T1w', label='time1')] = delayed1.time
 
         delayed2 = PythonJob(function=timestamp, reference='time2')
         delayed2.delay = Resource(wait)
-        self.rp[R('T1w', label='time2')] = delayed2.time
+        rp[R('T1w', label='time2')] = delayed2.time
 
 
-        res_rp = DependencySolver(self.rp).execute(executor=DaskExecution())
+        res_rp = DependencySolver(rp).execute(executor=DaskExecution())
 
         self.assertIn(R('label-time1_T1w'), res_rp)
         self.assertIn(R('label-time2_T1w'), res_rp)
@@ -166,7 +168,7 @@ class TestExecution(TestCase):
         self.assertLess(time1 - time2, wait)
 
 
-        res_rp = DependencySolver(self.rp).execute(executor=Execution())
+        res_rp = DependencySolver(rp).execute(executor=Execution())
 
         self.assertIn(R('label-time1_T1w'), res_rp)
         self.assertIn(R('label-time2_T1w'), res_rp)
@@ -178,7 +180,8 @@ class TestExecution(TestCase):
 
     def test_err(self):
 
-        rp = self.rp
+        rp = ResourcePool()
+        rp['sub-A00008399_ses-BAS1_T1w'] = Resource(A00008326_file)
 
         r_key = R('sub-A00008399_ses-BAS1_T1w')
         anatomical_image = rp[r_key]
@@ -194,7 +197,7 @@ class TestExecution(TestCase):
         erred = PythonJob(function=err, reference='erring_job')
         erred.message = Resource('This job has erred')
         erred.path = file_basename.dirname
-        self.rp[R('T1w', label='err')] = erred.no_return
+        rp[R('T1w', label='err')] = erred.no_return
 
         err_file_reversed = PythonJob(function=reversed_string, reference='err_reversed_string')
         err_file_reversed.path = erred.no_return
@@ -205,7 +208,7 @@ class TestExecution(TestCase):
         rp[R('T1w', label='baserev')] = file_reversed.reversed
 
         for executor in executors:
-            res_rp = DependencySolver(self.rp).execute(executor=executor())
+            res_rp = DependencySolver(rp).execute(executor=executor())
 
             self.assertIsInstance(res_rp[R('T1w', label='err')], InvalidResource)
             self.assertIsInstance(res_rp[R('T1w', label='errbaserev')], InvalidResource)

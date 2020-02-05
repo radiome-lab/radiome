@@ -94,14 +94,14 @@ class DependencySolver:
             if not isinstance(job, ComputedResource):
                 continue
 
-            job_hash = str(hash(job))
+            job_hash = hash(job)
 
             # Only get states which has references
             references = attr.get('references', [])
             if not references:
                 continue
 
-            if job_hash in results:
+            if job_hash in results and not isinstance(results[job_hash], Exception):
                 result = results[job_hash]
             else:
                 result = InvalidResource(job)

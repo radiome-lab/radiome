@@ -1,5 +1,5 @@
+import logging
 from distributed import Client, LocalCluster, Lock, get_client
-
 from .state import JobState
 
 logger = logging.getLogger('radiome.execution.executor')

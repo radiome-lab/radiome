@@ -66,6 +66,11 @@ class Job(Hashable):
         self._hash = state['_hash']
 
     def __getattr__(self, attr):
+
+        # @TODO review why dask is getting this attr
+        if attr == 'func':
+            raise AttributeError(f'Invalid input/output name: {attr}')
+
         if attr.startswith('_'):
             if attr in self.__dict__:
                 return self.__dict__[attr]
@@ -123,7 +128,10 @@ class FakeJob(Job):
         self._repr = state['_repr']
         self._str = state['_str']
 
+
 class PythonJob(Job):
+
+    _function = None
 
     def __init__(self, function, reference=None):
         super().__init__(reference)
