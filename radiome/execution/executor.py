@@ -35,10 +35,10 @@ class MissingDependenciesException(Exception):
 
 class Execution:
 
-    def __init__(self, state=None):
-        self._state = state
+    def __init__(self):
+        pass
 
-    def execute(self, state, graph):
+    def execute(self, graph):
         SGs = (graph.subgraph(c) for c in nx.weakly_connected_components(graph))
         results = {}
 
@@ -111,7 +111,7 @@ class DaskExecution(Execution):
         for f in futures:
             await f._state.wait()
 
-    def execute(self, state, graph):
+    def execute(self, graph):
         SGs = list(graph.subgraph(c) for c in nx.weakly_connected_components(graph))
         futures = []
         for SG in SGs:
