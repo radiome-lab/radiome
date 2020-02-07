@@ -59,7 +59,7 @@ class NipypeJob(Job):
         return {
             k: (
                 Path(v)
-                if isinstance(res.outputs.trait('out_file').trait_type, File)
+                if isinstance(res.outputs.trait(k).trait_type, File)
                 else v
             )
             for k, v in res.outputs.get().items()
