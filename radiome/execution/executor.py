@@ -85,8 +85,8 @@ class DaskExecution(Execution):
             cpus = 4
             cluster = LocalCluster(
                 resources={"memory": 30, "cpu": cpus, "storage": 20},
-                n_workers=1,
-                threads_per_worker=cpus,
+                n_workers=cpus,
+                threads_per_worker=2,
                 processes=True,
                 dashboard_address=None
             )
