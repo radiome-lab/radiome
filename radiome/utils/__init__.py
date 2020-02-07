@@ -1,6 +1,5 @@
 import hashlib
 
-
 def _nested_repr(obj):
     if isinstance(obj, dict):
         return repr([
@@ -15,7 +14,7 @@ def _nested_repr(obj):
         return repr([_nested_repr(v) for v in sorted(list(obj))])
 
     if isinstance(obj, Hashable):
-        return _nested_repr(obj.__hashcontent__())
+        return _nested_repr(obj.__longhash__())
 
     return repr(obj)
 
@@ -28,11 +27,16 @@ def deterministic_hash(obj):
 
 class Hashable:
 
-    def __hashcontent__(self):
+    _hash = None
+
+    def __hashcontent__(self):  
         raise NotImplementedError
 
     def __longhash__(self):
-        return deterministic_hash(self.__hashcontent__())
+        if not self._hash:
+            reference = self._reference if hasattr(self, '_reference') else ''
+            self._hash = deterministic_hash(self.__hashcontent__())
+        return self._hash
 
     def __hash__(self):
         return int(self.__longhash__(), 16)
@@ -42,3 +46,8 @@ class Hashable:
 
     def __eq__(self, other):
         return self.__longhash__() == other.__longhash__()
+
+    def __update_hash__(self):
+        self._hash = None
+        selfid = id(self)
+        self.__longhash__()

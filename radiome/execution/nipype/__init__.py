@@ -4,6 +4,9 @@ from radiome.resource_pool import Resource, ResourcePool
 from radiome.execution.job import Job, ComputedResource
 
 from nipype.interfaces.base import BaseInterface
+from nipype.interfaces.base.traits_extension import File
+
+from pathlib import Path
 
 
 class NipypeJob(Job):
@@ -20,7 +23,7 @@ class NipypeJob(Job):
             return self.__dict__[attr]
 
         if attr in self._interface.output_spec.class_visible_traits():
-            return ComputedResource((self, attr))
+            return ComputedResource(job=self, field=attr)
 
         raise AttributeError(f'Invalid input/output name: {attr}')
 
@@ -47,8 +50,17 @@ class NipypeJob(Job):
         self._interface = state['_interface']
 
     def __call__(self, **kwargs):
-        iface = copy.deepcopy(self._interface)
+        iface = self._interface
         for k, v in kwargs.items():
             setattr(iface.inputs, k, v)
+
         res = iface.run()  # add error handling
-        return res.outputs.get()
+        
+        return {
+            k: (
+                Path(v)
+                if isinstance(res.outputs.trait(k).trait_type, File)
+                else v
+            )
+            for k, v in res.outputs.get().items()
+        }

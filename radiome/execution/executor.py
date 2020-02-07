@@ -1,163 +1,196 @@
 import logging
+import os
+import shutil
 import tempfile
 
+import cloudpickle
 import networkx as nx
-from distributed import Client, LocalCluster, Lock, get_client
+from distributed import (Client, Future, LocalCluster, Lock, get_client,
+                         get_worker)
+from distributed.protocol.serialize import register_serialization_family
 
 from radiome.execution.job import Job
-
-from .state import JobState
 
 logger = logging.getLogger('radiome.execution.executor')
 logger_lock = logger.getChild('lock')
 
 
+def cloudpickle_dumps(x):
+    header = {'serializer': 'cloudpickle'}
+    logger.info(f'Dumping {x}')
+    frames = [cloudpickle.dumps(x)]
+    return header, frames
+
+def cloudpickle_loads(header, frames):
+    if len(frames) > 1:
+        frame = ''.join(frames)
+    else:
+        frame = frames[0]
+    x = cloudpickle.loads(frame)
+    logger.info(f'Loading {x}')
+    return x
+
+register_serialization_family('cloudpickle', cloudpickle_dumps, cloudpickle_loads)
+
+
+class MissingDependenciesException(Exception):
+    pass
+
+
 class Execution:
 
-    def __init__(self, state=None):
-        self._state = state
+    def __init__(self):
+        pass
 
-    def execute(self, state, graph):
+    def execute(self, graph):
+        results = {}
+
+        edge = lambda G, f, t: G.edges[(f, t)]['field']
+        result = lambda G, n: \
+            results[hash(G.nodes[n]['job'])]
+
+        logger.info(f'Computing jobs')
         SGs = (graph.subgraph(c) for c in nx.weakly_connected_components(graph))
-
         for SG in SGs:
             for resource in nx.topological_sort(SG):
-                job = SG.node[resource]['job']
-                if not isinstance(job, Job):
+                job = SG.nodes[resource]['job']
+                dependencies = {
+                    edge(SG, dependency, resource): result(SG, dependency)
+                    for dependency in SG.predecessors(resource)
+                }
+
+                if any(isinstance(d, Exception) for d in dependencies.values()):
+                    results[hash(job)] = MissingDependenciesException()
                     continue
+
+                logger.info(f'Computing job {job.resource} with deps {dependencies}')
+                
                 try:
-                    self.schedule(state, job)
+                    results[hash(job)] = job(**dependencies)
                 except Exception as e:
+                    results[hash(job)] = e
                     logger.exception(e)
-
-    def schedule(self, state, job):
-        dependencies = {
-            k: (
-                self.schedule(state, job_dependency)
-                if isinstance(job_dependency, Job)
-                else job_dependency()
-            )
-            for k, job_dependency in job.dependencies.items()
-        }
-
-        return state.compute(job, **dependencies)
-
-
-def dask_lock(method):
-    def inner(state_instance, *args, **kwargs):
-        unlock = False
-        try:
-            if not state_instance.lock.locked():
-                logger_lock.info(f'{method.__name__}: Acquiring lock for job {state_instance.job}')
-                state_instance.lock.acquire()
-                unlock = True
-            return method(state_instance, *args, **kwargs)
-        except Exception as e:
-            logger_lock.exception(e)
-            raise e
-        finally:
-            if unlock:
-                logger_lock.info(f'{method.__name__}: Releasing lock for job {state_instance.job}')
-                state_instance.lock.release()
-    return inner
-
-
-class DaskJobState(JobState):
-
-    def __init__(self, client, state, job):
-        super().__init__(state, job)
-        self._lock = Lock(self._job.__shorthash__(), client=client)
-
-    def __repr__(self):
-        return f'DaskJobState({self._job.__str__()})'
-
-    def __dask_tokenize__(self):
-        return hash(self._job)
-
-    def __getstate__(self):
-        return {
-            '_state': self._state,
-            '_job': self._job,
-        }
-
-    def __setstate__(self, state):
-        self._state = state['_state']
-        self._job = state['_job']
-        self._lock = Lock(self._job.__shorthash__(), client=get_client())
-
-    @property
-    def lock(self):
-        return self._lock
-
-    @property
-    @dask_lock
-    def state(self):
-        return super().state
-
-    @property
-    @dask_lock
-    def stored(self):
-        return super().stored
-
-    @dask_lock
-    def __call__(self, **kwargs):
-        return super().__call__(**kwargs)
+                
+        return results
 
 
 class DaskExecution(Execution):
 
+    _self_client = False
+
     def __init__(self, client=None):
         super().__init__()
 
-        self._self_client = False
         if not client:
-            cluster = LocalCluster(processes=True, dashboard_address=None, local_dir=tempfile.mkdtemp())
-            client = Client(cluster)
+            cpus = 4
+            cluster = LocalCluster(
+                resources={"memory": 30, "cpu": cpus, "storage": 20},
+                n_workers=cpus,
+                threads_per_worker=2,
+                processes=True,
+                dashboard_address=None
+            )
+            client = Client(
+                cluster,
+                serializers=['cloudpickle'],
+                deserializers=['cloudpickle']
+            )
             self._self_client = True
         self._client = client
-
-        self._futures = {}
-        self._joined = False
 
     def __del__(self):
         if self._self_client:
             self._client.close()
 
-    def execute(self, state, graph):
-        super().execute(state, graph)
-        logger.info(f'Joining execution of {len(self._futures)} executions: {list(str(s.key) for s in self._futures.values())}')
-        self._client.sync(self._result, list(self._futures.values()))
-        self._joined = True
+    def __getstate__(self):
+        return {}
 
-    def schedule(self, state, job):
-        state_job = DaskJobState(self._client, state, job)
-
-        if not state_job.stored:
-
-            job_hash = hash(job)
-
-            if self._joined:
-                done = 'done' if self._futures[job_hash].done() else 'undone'
-                logger.warning(f'Computing job {job} when already joined and future says it is {done}')
-
-            if job_hash not in self._futures:
-
-                dependencies = {
-                    k: self.schedule(state, v) if isinstance(v, Job) else v()
-                    for k, v in job.dependencies.items()
-                }
-
-                self._futures[job_hash] = self._client.submit(state_job, **dependencies)
-
-                logger.info(f'Computing job {job} with deps {dependencies}')
-
-            return self._futures[job_hash]
-
-        return state_job.state
+    def __setstate__(self, state):
+        self._client = get_client()
 
     async def _result(self, futures):
         for f in futures:
             await f._state.wait()
+
+    def execute(self, graph):
+        SGs = list(graph.subgraph(c) for c in nx.weakly_connected_components(graph))
+        futures = []
+        for SG in SGs:
+            futures += [self._client.submit(
+                self.execute_subgraph, 
+                SG=SG,
+                pure=False,
+                resources={
+                    'storage': sum([
+                        SG.nodes[resource]['job'].resources()['storage']
+                        for resource in nx.topological_sort(SG)
+                    ])
+                }
+            )]
+
+        logger.info(f'Joining execution of {len(futures)} executions:'
+                    f' {list(str(s.key) for s in futures)}')
+
+        results = {
+            k: v
+            for d in self._client.gather(futures, errors='skip')
+            for k, v in d.items()
+        }
+        return results
+
+    def execute_subgraph(
+        self,
+        SG
+    ):
+        futures = {}
+
+        client = self._client
+        worker = get_worker()
+
+        logger.info(f'Computing subgraph')
+
+        edge = lambda G, f, t: G.edges[(f, t)]['field']
+        result = lambda G, n: \
+            futures[hash(G.nodes[n]['job'])] \
+            if isinstance(G.nodes[n]['job'].resource, Job) else \
+            G.nodes[n]['job']()
+
+        for resource in nx.topological_sort(SG):
+            job = SG.nodes[resource]['job']
+
+            if not isinstance(job.resource, Job):
+                continue
+
+            dependencies = {
+                edge(SG, dependency, resource): result(SG, dependency)
+                for dependency in SG.predecessors(resource)
+            }
+            
+            logger.info(f'Computing job {job.resource} with deps {dependencies}')
+
+            resources = job.resources()
+            try:
+                del resources['storage']
+            except:
+                pass
+
+            futures[hash(job)] = client.submit(
+                job,
+                **dependencies,
+                resources=resources,
+                workers=[worker.address],
+                key=str(job),
+                pure=False
+            )
+
+        logger.info(f'Gathering subgraph')
+
+        return {
+            k: v if v is not None else futures[k].exception()
+            for k, v in self._client.gather(
+                futures, errors='skip'
+            ).items()
+        }
 
 
 executors = [

@@ -133,7 +133,7 @@ class ResourceKey(Hashable):
     _SS = re.escape(STRAT_SEP)
     FORMAT = rf'([^{_KVS}{_ES}]+{_KVS}[^{_ES}{_SS}]+(_ES[^{_KVS}{_ES}]+{_KVS}[^{_ES}{_SS}]+)*)?([^{_KVS}{_ES}]+)?'
 
-    supported_entities: List[str] = ['sub', 'ses', 'run', 'task',
+    supported_entities: List[str] = ['sub', 'ses', 'run', 'task', 'acq',
                                      'space', 'atlas', 'roi', 'label',
                                      'hemi', 'from', 'to', 'desc']
 
@@ -302,7 +302,7 @@ class ResourceKey(Hashable):
             raise ValueError(f'Entities are not subsets: {self_entities_keys} '
                              f'and {other_entities_keys}')
 
-        for k, v in self._entities:
+        for k, v in self._entities.items():
             if k not in other_entities:
                 return False
             if v != other_entities[k]:
@@ -511,7 +511,6 @@ class Resource(Hashable):
     def content(self) -> Any:
         return self._content
 
-    @property
     def dependencies(self) -> Dict[str, Any]:
         return {}
 
@@ -521,11 +520,12 @@ class InvalidResource(Resource):
     def __init__(self, resource: Resource, exception: Exception=None):
         self._resource = resource
         self._exception = exception
+        self._content = None
 
     def __hashcontent__(self) -> Tuple:
         return self._resource, self._exception
 
-    def __call__(self, **state) -> Any:
+    def __call__(self, **state: Any) -> Any:
         return self.content
 
     @property
@@ -574,6 +574,17 @@ class ResourcePool:
             return self.extract(*key)
 
         if isinstance(key, ResourceKey):
+
+            if key.isfilter():
+                rp = ResourcePool()
+
+                for rkey in self._pool:
+                    if rkey not in key:
+                        continue
+                    rp[rkey] = self[rkey]
+
+                return rp
+                
             try:
                 return self._pool[key]
             except KeyError:
