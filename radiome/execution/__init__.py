@@ -50,10 +50,13 @@ class State(Hashable):
             return
         if not self._master:
             return
-
+            
         resource_hash = hash(self._resource)
+        resource_dir = os.path.join(self._work_dir, str(resource_hash))
+        logger.info(f'Wiping out {self._resource} directory.')
+
         try:
-            shutil.rmtree(f'./{resource_hash}')
+            shutil.rmtree(resource_dir)
         except:
             pass
         

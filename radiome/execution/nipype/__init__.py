@@ -53,12 +53,14 @@ class NipypeJob(Job):
         iface = self._interface
         for k, v in kwargs.items():
             setattr(iface.inputs, k, v)
+
         res = iface.run()  # add error handling
+        
         return {
             k: (
                 Path(v)
-                if isinstance(iface.output_spec().trait('out_file').trait_type,
-                File) else v
+                if isinstance(res.outputs.trait('out_file').trait_type, File)
+                else v
             )
             for k, v in res.outputs.get().items()
         }

@@ -36,8 +36,6 @@ class TestWorkflow(TestCase):
 
     def test_workflow1(self):
 
-        timing = {}
-
         for executor in executors:
 
             rp = ResourcePool()
@@ -51,8 +49,6 @@ class TestWorkflow(TestCase):
             res_rp = DependencySolver(rp).execute(executor=executor())
             elapsed_time = time.time() - start_time
 
-            timing[executor] = elapsed_time
-
             for sub in [
                 'A00008326',
                 'A00008399',
@@ -65,8 +61,6 @@ class TestWorkflow(TestCase):
                     nb.load(res_rp[R(f'sub-{sub}_ses-BAS1_label-initial_T1w')]()).shape
                 )
 
-        print(timing)
-
     def tearDown(self):
-        shutil.rmtree(self.scratch)
+        shutil.rmtree(self.scratch, ignore_errors=True)
         os.chdir(self.olddir)
