@@ -1,11 +1,15 @@
 import logging
+import os
+import shutil
 import tempfile
 
-import networkx as nx
-from distributed import Client, LocalCluster, Lock, Future, get_client, get_worker
-from radiome.execution.job import Job
 import cloudpickle
+import networkx as nx
+from distributed import (Client, Future, LocalCluster, Lock, get_client,
+                         get_worker)
 from distributed.protocol.serialize import register_serialization_family
+
+from radiome.execution.job import Job
 
 logger = logging.getLogger('radiome.execution.executor')
 logger_lock = logger.getChild('lock')
@@ -39,21 +43,17 @@ class Execution:
         pass
 
     def execute(self, graph):
-        SGs = (graph.subgraph(c) for c in nx.weakly_connected_components(graph))
         results = {}
 
         edge = lambda G, f, t: G.edges[(f, t)]['field']
         result = lambda G, n: \
-            results[hash(G.nodes[n]['job'])] \
-            if isinstance(G.nodes[n]['job'], Job) \
-            else G.nodes[n]['job']()
+            results[hash(G.nodes[n]['job'])]
 
+        logger.info(f'Computing jobs')
+        SGs = (graph.subgraph(c) for c in nx.weakly_connected_components(graph))
         for SG in SGs:
             for resource in nx.topological_sort(SG):
                 job = SG.nodes[resource]['job']
-                if not isinstance(job, Job):
-                    continue
-
                 dependencies = {
                     edge(SG, dependency, resource): result(SG, dependency)
                     for dependency in SG.predecessors(resource)
@@ -63,7 +63,7 @@ class Execution:
                     results[hash(job)] = MissingDependenciesException()
                     continue
 
-                logger.info(f'Computing job {job} with deps {dependencies}')
+                logger.info(f'Computing job {job.resource} with deps {dependencies}')
                 
                 try:
                     results[hash(job)] = job(**dependencies)
@@ -82,10 +82,11 @@ class DaskExecution(Execution):
         super().__init__()
 
         if not client:
+            cpus = 4
             cluster = LocalCluster(
-                resources={"memory": 30, "cpu": 10, "storage": 20},
-                n_workers=10,
-                threads_per_worker=10,
+                resources={"memory": 30, "cpu": cpus, "storage": 20},
+                n_workers=1,
+                threads_per_worker=cpus,
                 processes=True,
                 dashboard_address=None
             )
@@ -123,7 +124,6 @@ class DaskExecution(Execution):
                     'storage': sum([
                         SG.nodes[resource]['job'].resources()['storage']
                         for resource in nx.topological_sort(SG)
-                        if isinstance(SG.nodes[resource]['job'], Job)
                     ])
                 }
             )]
@@ -152,14 +152,13 @@ class DaskExecution(Execution):
         edge = lambda G, f, t: G.edges[(f, t)]['field']
         result = lambda G, n: \
             futures[hash(G.nodes[n]['job'])] \
-            if isinstance(G.nodes[n]['job'], Job) \
-            else G.nodes[n]['job']()
+            if isinstance(G.nodes[n]['job'].resource, Job) else \
+            G.nodes[n]['job']()
 
         for resource in nx.topological_sort(SG):
             job = SG.nodes[resource]['job']
-            state_job = job
 
-            if not isinstance(job, Job):
+            if not isinstance(job.resource, Job):
                 continue
 
             dependencies = {
@@ -167,7 +166,7 @@ class DaskExecution(Execution):
                 for dependency in SG.predecessors(resource)
             }
             
-            logger.info(f'Computing job {job} with deps {dependencies}')
+            logger.info(f'Computing job {job.resource} with deps {dependencies}')
 
             resources = job.resources()
             try:

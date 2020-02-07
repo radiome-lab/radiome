@@ -1,17 +1,95 @@
+import os
 import logging
+import shutil
+
 import networkx as nx
-from radiome.resource_pool import ResourcePool, InvalidResource
+from pathlib import Path
+
+from radiome.resource_pool import InvalidResource, ResourcePool
+from radiome.utils import Hashable
 
 from .executor import Execution
-from .job import ComputedResource
+from .job import ComputedResource, Job
+from .utils import cwd
 
-logger = logging.getLogger('radiome.execution')
+logger = logging.getLogger('radiome.execution.state')
+
+class State(Hashable):
+    _master = True
+
+    def __init__(self, work_dir, resource):
+        self._work_dir = os.path.abspath(work_dir)
+        self._resource = resource
+
+    def __call__(self, **dependencies):
+        if isinstance(self._resource, Job):
+            resource_hash = hash(self._resource)
+            resource_dir = os.path.join(self._work_dir, str(resource_hash))
+            try:
+                os.makedirs(resource_dir)
+            except:
+                pass
+            logger.info(f'{resource_dir}: {os.path.exists(resource_dir)}')
+            with cwd(resource_dir):
+                result = self._resource(**dependencies)
+        else:
+            result = self._resource(**dependencies)
+        return result
+
+    def __str__(self):
+        return self._resource.__str__()
+
+    def __repr__(self):
+        return self._resource.__repr__()
+
+    def __longhash__(self):
+        return self._resource.__longhash__()
+
+    def __del__(self):
+        if not isinstance(self._resource, Job):
+            return
+        if not self._master:
+            return
+
+        resource_hash = hash(self._resource)
+        try:
+            shutil.rmtree(f'./{resource_hash}')
+        except:
+            pass
+        
+    def __getstate__(self):
+        return {
+            '_resource': self._resource,
+            '_work_dir': self._work_dir,
+        }
+
+    def __setstate__(self, state):
+        self._resource = state['_resource']
+        self._master = False
+        self._work_dir = state['_work_dir']
+
+    def resources(self):
+        if isinstance(self._resource, Job):
+            return self._resource.resources()
+        return {
+            'cpu': 0,
+            'memory': 0,
+            'storage': 0,
+        }
+
+    def __getattr__(self, attr):
+        if attr == 'resource':
+            return self._resource
+        if attr in self.__dict__:
+            return self.__dict__[attr]
+        raise AttributeError(f'Invalid attr: {attr}')
 
 
 class DependencySolver:
 
-    def __init__(self, resource_pool):
+    def __init__(self, resource_pool, work_dir='.'):
         self._resource_pool = resource_pool
+        self._work_dir = os.path.abspath(work_dir)
 
     @property
     def graph(self):
@@ -30,13 +108,13 @@ class DependencySolver:
             if resource_id in G:
                 references |= G.nodes[resource_id]['references']
 
-            G.add_node(resource_id, job=resource, references=references)
+            G.add_node(resource_id, job=State(self._work_dir, resource), references=references)
 
             for field, dep in resource.dependencies().items():
                 dep_id = id(dep)
 
                 if dep_id not in G:
-                    G.add_node(dep_id, job=dep)
+                    G.add_node(dep_id, job=State(self._work_dir, dep))
                 G.add_edge(dep_id, resource_id, field=field)
 
                 if dep_id not in instances:
@@ -51,7 +129,7 @@ class DependencySolver:
             for field, dep in resource.dependencies().items():
                 dep_id = id(dep)
                 if dep_id not in G:
-                    G.add_node(dep_id, job=dep)
+                    G.add_node(dep_id, job=State(self._work_dir, dep))
                 G.add_edge(dep_id, resource_id, field=field)
 
                 if dep_id not in instances:
@@ -80,6 +158,8 @@ class DependencySolver:
         if not executor:
             executor = Execution()
 
+        logger.info(f'Executing with {executor.__class__.__name__}')
+
         results = executor.execute(graph=G)
 
         logger.info('Gathering resources')
@@ -87,7 +167,7 @@ class DependencySolver:
         for _, attr in self.graph.nodes.items():
 
             job = attr['job']
-            if not isinstance(job, ComputedResource):
+            if not isinstance(job.resource, ComputedResource):
                 continue
 
             job_hash = hash(job)
@@ -102,6 +182,13 @@ class DependencySolver:
                 result = InvalidResource(job)
 
             for key in attr.get('references', []):
+                if isinstance(result, Path):
+                    logger.info(f'Setting {result} in {key}')
+                    ext = os.path.basename(result).split('.', 1)[-1]
+                    output = f'./{key}.{ext}'
+                    logger.info(f'Copying file from "{result}" to "{output}"')
+                    shutil.copyfile(result, output)
+                    result = output
                 resource_pool[key] = result
 
         return resource_pool

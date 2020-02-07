@@ -4,6 +4,9 @@ from radiome.resource_pool import Resource, ResourcePool
 from radiome.execution.job import Job, ComputedResource
 
 from nipype.interfaces.base import BaseInterface
+from nipype.interfaces.base.traits_extension import File
+
+from pathlib import Path
 
 
 class NipypeJob(Job):
@@ -51,4 +54,11 @@ class NipypeJob(Job):
         for k, v in kwargs.items():
             setattr(iface.inputs, k, v)
         res = iface.run()  # add error handling
-        return res.outputs.get()
+        return {
+            k: (
+                Path(v)
+                if isinstance(iface.output_spec().trait('out_file').trait_type,
+                File) else v
+            )
+            for k, v in res.outputs.get().items()
+        }
