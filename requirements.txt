@@ -5,9 +5,9 @@ certifi==2019.11.28
 chardet==3.0.4
 Click==7.0
 cloudpickle==1.2.2
-dask==2.3.0
+dask==2.10.1
 decorator==4.4.1
-distributed==2.1.0
+distributed==2.10.0
 docutils==0.15.2
 etelemetry==0.1.2
 filelock==3.0.12
@@ -22,10 +22,10 @@ isodate==0.6.0
 jmespath==0.9.4
 lxml==4.5.0
 msgpack==0.6.2
-networkx==2.3
+networkx==2.4
 neurdflib==5.0.1
 nibabel==3.0.1
-nipype==1.2.3
+nipype==1.4.1
 numpy==1.18.1
 packaging==20.1
 prov==1.5.3
