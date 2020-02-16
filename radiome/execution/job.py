@@ -20,7 +20,7 @@ class Job(Hashable):
             self._estimates = {
                 'cpu': 1,
                 'memory': 3,
-                'storage': 5/1024,
+                'storage': 5 / 1024,
             }
 
     def __str__(self):
@@ -28,7 +28,7 @@ class Job(Hashable):
             job_repr = f'{self.__shorthash__()},{self._reference}'
         else:
             job_repr = f'{self.__shorthash__()}'
-            
+
         return f'{self.__class__.__name__}({job_repr})'
 
     def __repr__(self):
@@ -125,7 +125,6 @@ class FakeJob(Job):
 
 
 class PythonJob(Job):
-
     _function = None
 
     def __init__(self, function, reference=None):
@@ -159,11 +158,12 @@ class ComputedResource(Job, Resource):
         self._field = field
         self._content = (job, field)
         self._inputs = {'state': job}
+        self._output_name = None
 
         self._estimates = {
             'cpu': 1,
             'memory': .2,
-            'storage': 5/1024,
+            'storage': 5 / 1024,
         }
 
     def __str__(self):
@@ -198,3 +198,11 @@ class ComputedResource(Job, Resource):
         self._job = state['_job']
         self._content = (self._job, self._field)
         self._inputs = {'state': self._job}
+
+    def with_output_name(self, name: str) -> 'ComputedResource':
+        self._output_name = name
+        return self
+
+    @property
+    def output_name(self):
+        return self._output_name

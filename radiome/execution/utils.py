@@ -4,6 +4,7 @@ import os
 
 logger = logging.getLogger('radiome.execution.utils')
 
+
 @contextlib.contextmanager
 def cwd(new_dir):
     new_dir = os.path.abspath(new_dir)

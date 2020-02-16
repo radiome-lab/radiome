@@ -1,18 +1,18 @@
-import os
 import logging
+import os
 import shutil
+from pathlib import Path
 
 import networkx as nx
-from pathlib import Path
 
 from radiome.resource_pool import InvalidResource, ResourcePool
 from radiome.utils import Hashable
-
 from .executor import Execution
 from .job import ComputedResource, Job
 from .utils import cwd
 
 logger = logging.getLogger('radiome.execution.state')
+
 
 class State(Hashable):
     _master = True
@@ -50,7 +50,7 @@ class State(Hashable):
             return
         if not self._master:
             return
-            
+
         resource_hash = hash(self._resource)
         resource_dir = os.path.join(self._work_dir, str(resource_hash))
         logger.info(f'Wiping out {self._resource} directory.')
@@ -59,7 +59,7 @@ class State(Hashable):
             shutil.rmtree(resource_dir)
         except:
             pass
-        
+
     def __getstate__(self):
         return {
             '_resource': self._resource,
@@ -168,7 +168,6 @@ class DependencySolver:
         logger.info('Gathering resources')
         resource_pool = ResourcePool()
         for _, attr in self.graph.nodes.items():
-
             job = attr['job']
             if not isinstance(job.resource, ComputedResource):
                 continue
@@ -188,7 +187,13 @@ class DependencySolver:
                 if isinstance(result, Path):
                     logger.info(f'Setting {result} in {key}')
                     ext = os.path.basename(result).split('.', 1)[-1]
-                    output = f'./{key}.{ext}'
+                    computed_job = job._resource
+                    directory = f'{self._work_dir}/{computed_job.output_name}/sub-{key.entities["sub"]}' \
+                        if computed_job.output_name \
+                        else f'{self._work_dir}'
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)
+                    output = f'{directory}/{key}.{ext}'
                     logger.info(f'Copying file from "{result}" to "{output}"')
                     shutil.copyfile(result, output)
                     result = output

@@ -1,11 +1,8 @@
 import logging
-import os
-import shutil
-import tempfile
 
 import cloudpickle
 import networkx as nx
-from distributed import (Client, Future, LocalCluster, Lock, get_client,
+from distributed import (Client, LocalCluster, get_client,
                          get_worker)
 from distributed.protocol.serialize import register_serialization_family
 
@@ -21,6 +18,7 @@ def cloudpickle_dumps(x):
     frames = [cloudpickle.dumps(x)]
     return header, frames
 
+
 def cloudpickle_loads(header, frames):
     if len(frames) > 1:
         frame = ''.join(frames)
@@ -29,6 +27,7 @@ def cloudpickle_loads(header, frames):
     x = cloudpickle.loads(frame)
     logger.info(f'Loading {x}')
     return x
+
 
 register_serialization_family('cloudpickle', cloudpickle_dumps, cloudpickle_loads)
 
@@ -64,18 +63,17 @@ class Execution:
                     continue
 
                 logger.info(f'Computing job {job.resource} with deps {dependencies}')
-                
+
                 try:
                     results[hash(job)] = job(**dependencies)
                 except Exception as e:
                     results[hash(job)] = e
                     logger.exception(e)
-                
+
         return results
 
 
 class DaskExecution(Execution):
-
     _self_client = False
 
     def __init__(self, client=None):
@@ -117,7 +115,7 @@ class DaskExecution(Execution):
         futures = []
         for SG in SGs:
             futures += [self._client.submit(
-                self.execute_subgraph, 
+                self.execute_subgraph,
                 SG=SG,
                 pure=False,
                 resources={
@@ -138,10 +136,7 @@ class DaskExecution(Execution):
         }
         return results
 
-    def execute_subgraph(
-        self,
-        SG
-    ):
+    def execute_subgraph(self, SG):
         futures = {}
 
         client = self._client
@@ -152,8 +147,8 @@ class DaskExecution(Execution):
         edge = lambda G, f, t: G.edges[(f, t)]['field']
         result = lambda G, n: \
             futures[hash(G.nodes[n]['job'])] \
-            if isinstance(G.nodes[n]['job'].resource, Job) else \
-            G.nodes[n]['job']()
+                if isinstance(G.nodes[n]['job'].resource, Job) else \
+                G.nodes[n]['job']()
 
         for resource in nx.topological_sort(SG):
             job = SG.nodes[resource]['job']
@@ -165,7 +160,7 @@ class DaskExecution(Execution):
                 edge(SG, dependency, resource): result(SG, dependency)
                 for dependency in SG.predecessors(resource)
             }
-            
+
             logger.info(f'Computing job {job.resource} with deps {dependencies}')
 
             resources = job.resources()

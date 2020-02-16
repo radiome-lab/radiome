@@ -1,15 +1,30 @@
 import logging
 import os
+from dataclasses import dataclass
 from typing import List
 
 import s3fs
-import yaml
 
-from radiome.execution import DependencySolver, workflow as wf, FileState
+from radiome.execution import DependencySolver, workflow as wf
 from radiome.execution.executor import DaskExecution
 from radiome.resource_pool import FileResource, ResourcePool
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Context:
+    working_dir: str = None
+    inputs_dir: str = None
+    inputs_cred: str = None
+    outputs_dir: str = None
+    outputs_cred: str = None
+    n_cpus: int = None
+    memory: int = None
+    participant_label: List[str] = None
+    save_working_dir: bool = True
+    file_logging: bool = True
+    workflow_config: List = None
 
 
 def load_resource(inputs_dir: str, output_dir: str, resource_pool: ResourcePool, participant_label: List[str] = None):
@@ -31,23 +46,20 @@ def load_resource(inputs_dir: str, output_dir: str, resource_pool: ResourcePool,
                     logger.info(f'Added {filename} to the resource pool.')
 
 
-def build(inputs_dir: str, output_dir: str, config_file_dir: str, participant_label: List[str] = None, **kwargs):
+def build(context: Context, **kwargs):
+    inputs_dir = context.inputs_dir
+    output_dir = context.outputs_dir
+    participant_label = context.participant_label
     rp = ResourcePool()
     load_resource(inputs_dir, output_dir, rp, participant_label)
-    context = {
-        'working_dir': output_dir,
-        **kwargs
-    }
-    with open(config_file_dir, 'r') as f:
-        data: List = yaml.safe_load(f)
-        logger.info(f'Loaded the config file {config_file_dir}.')
+
     # TODO more doc on schema format
-    for workflow in data:
+    for workflow in context.workflow_config:
         if not isinstance(workflow, dict) or len(workflow) != 1:
             raise ValueError('Invalid config schema.')
         for item, config in workflow.items():
             if not isinstance(config, dict):
                 raise ValueError('Invalid config schema.')
             wf.load(item)(config, rp, context)
-    DependencySolver(rp).execute(executor=DaskExecution(), state=FileState(output_dir))
+    DependencySolver(rp, work_dir=f'{output_dir}/derivatives').execute(executor=DaskExecution())
     # TODO: Move file from resource pool
