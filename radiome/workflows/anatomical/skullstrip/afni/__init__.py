@@ -170,5 +170,6 @@ def create_workflow(configuration, resource_pool: ResourcePool, context):
         )
         anat_skullstrip.in_file = anatomical_image
         # TODO for test only
-        rp[R('T1w', label='skullstrip')] = anat_skullstrip.out_file
+        out_file = anat_skullstrip.out_file
+        rp[R('T1w', label='skullstrip')] = out_file.with_output_name('afni-skullstrip')
     return resource_pool

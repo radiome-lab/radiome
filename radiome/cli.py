@@ -5,18 +5,18 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import yaml
 
 from radiome import __version__, __author__, __email__
 from radiome import pipeline
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                    format='%(asctime)s-15s %(name)s %(levelname)s: %(message)s')
 
-def print_err(msg: str) -> None:
-    print(msg, file=sys.stderr)
 
-
-def main():
+def parse_args(args):
     parser = argparse.ArgumentParser(description='Radiome Pipeline Runner')
     parser.add_argument('bids_dir', help='The directory with the input dataset '
                                          'formatted according to the BIDS standard. '
@@ -67,7 +67,7 @@ def main():
                                                            ' should read from the environment. '
                                                            '(E.g. when using AWS iam roles).',
                         default=None)
-    parser.add_argument('--n_cpus', type=int, default=1,
+    parser.add_argument('--n_cpus', type=int,
                         help='Number of execution '
                              ' resources available for the pipeline')
     parser.add_argument('--mem_mb', type=float,
@@ -80,101 +80,98 @@ def main():
                         help='Save the contents of the working directory.')
     parser.add_argument('--disable_file_logging', action='store_true',
                         help='Disable file logging, this is useful for clusters that have disabled file locking.')
-    parser.add_argument('--skip_bids_validator',
+    parser.add_argument('--enable_bids_validator',
                         help='skips bids validation',
-                        action='store_false')
+                        action='store_true')
     parser.add_argument('--bids_validator_config', help='JSON file specifying configuration of '
                                                         'bids-validator: See https://github.com/INCF/bids-validator '
                                                         'for more info')
     parser.add_argument('--version', action='version',
                         version=f'Radiome version: {__version__}, email: {__email__}, author: {__author__}')
-    args = parser.parse_args()
+    return parser.parse_args(args)
+
+
+def build_context(args) -> pipeline.Context:
     context = pipeline.Context()
-    # Check the config file.
-    if not os.path.exists(args.config_file):
-        print_err(f"Can't find config file {args.config_file}!")
-        return 1
+
+    # Load config.
+    if not os.path.isfile(args.config_file):
+        raise FileNotFoundError(f"Can't find config file {args.config_file}!")
     with open(args.config_file, 'r') as f:
         context.workflow_config = yaml.safe_load(f)
 
     # Check the input dataset.
     if not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
-        print_err(f"Invalid inputs dir {args.bids_dir}!")
-        return 1
+        raise ValueError(f"Invalid inputs dir {args.bids_dir}!")
     context.inputs_dir = args.bids_dir
 
     # Check the output directory.
     if args.outputs_dir.lower().startswith("s3://"):
         if args.working_dir is None:
-            print_err("A local working dir must be specified when use an s3 bucket as output!")
-            return 1
+            raise NotADirectoryError("A local working dir must be specified when use an s3 bucket as output!")
         else:
             context.outputs_dir = args.outputs_dir
             context.working_dir = args.working_dir
     else:
-        if not os.path.exists(args.outputs_dir):
-            try:
-                os.makedirs(args.outputs_dir)
-            except:
-                print_err(f"Can't create output dir {args.output_dir}!")
-                return 1
+        Path(args.outputs_dir).mkdir(parents=True, exist_ok=True)
         context.outputs_dir = args.outputs_dir
+
         if args.working_dir is None:
             context.working_dir = f'{args.outputs_dir}/scratch'
         else:
             context.working_dir = args.working_dir
-        if not os.path.exists(context.working_dir):
-            try:
-                os.makedirs(context.working_dir)
-            except:
-                print_err(f"Can't create output dir {context.working_dir}!")
-                return 1
+        Path(context.working_dir).mkdir(parents=True, exist_ok=True)
 
     # Participant label
     context.participant_label = args.participant_label
 
     # Set up the logging
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                        format='%(asctime)s-15s %(levelname)s %(name)s: %(message)s')
     if not args.disable_file_logging:
         file_handler = logging.FileHandler(
-            f'{context.working_dir}/{datetime.now().strftime("radiome_%H_%M_%d_%m_%Y.log")}')
+            f'{context.working_dir}/{datetime.now().strftime("radiome_%Y_%m_%d_%H_%M.log")}')
         logging.getLogger().addHandler(file_handler)
-    console_handler = logging.StreamHandler()
-    logging.getLogger().addHandler(console_handler)
 
     # Set up maximum memory allowed.
     if args.mem_gb:
-        context.memory = float(args.mem_gb * 1024)
+        context.memory = args.mem_gb * 1024
     elif args.mem_mb:
-        context.memory = float(args.mem_mb)
+        context.memory = args.mem_mb
     else:
         context.memory = 6 * 1024
 
     # Set up max core allowed
-    context.n_cpus = int(args.n_cpus)
+    context.n_cpus = args.n_cpus or 1
 
     # BIDS Validation
-    if not args.skip_bids_validator:
+    if args.enable_bids_validator:
         if not shutil.which('bids-validator'):
-            print_err('BIDS Validator is not correctly set up in your system!'
-                      'Please refer to https://github.com/bids-standard/bids-validator'
-                      'Command line version section for more information.')
+            raise OSError('BIDS Validator is not correctly set up in your system!'
+                          'Please refer to https://github.com/bids-standard/bids-validator'
+                          'Command line version section for more information.')
         commands = ['bids-validator', f'--config {args.bids_validator_config}',
                     context.inputs_dir] if args.bids_validator_config else ['bids-validator', context.inputs_dir]
         completed_process = subprocess.run(commands, capture_output=True, universal_newlines=True)
         if completed_process.returncode != 0:
-            print_err('BIDS Validation failed. The error information is:')
-            print(completed_process.stdout.splitlines())
+            raise ValueError(
+                f'BIDS Validation failed. The error information is: {completed_process.stdout.splitlines()}')
         else:
             print('BIDS Validation passed. Continue')
 
-    # Print runtime information
-    print('Building the pipeline....')
-    print(context)
+    return context
 
-    pipeline.build(context)
-    return 0
+
+def main():
+    args = parse_args(sys.argv[1:])
+    try:
+        context = build_context(args)
+        print('Building the pipeline....')
+        print(context)
+        pipeline.build(context)
+    except Exception as e:
+        print(f'{type(e)}:{e}', file=sys.stderr)
+        return 1
+    else:
+        return 0
 
 
 if __name__ == "__main__":
