@@ -43,7 +43,7 @@ class TestWorkflow(TestCase):
             for s in self.subs:
                 rp[os.path.basename(s).split('.', 1)[0]] = Resource(s)
 
-            create_workflow({}, rp)
+            create_workflow({}, rp, {})
 
             start_time = time.time()
             res_rp = DependencySolver(rp).execute(executor=executor())
@@ -53,7 +53,6 @@ class TestWorkflow(TestCase):
                 'A00008326',
                 'A00008399',
             ]:
-
                 self.assertIn(R(f'sub-{sub}_ses-BAS1_label-initial_T1w'), res_rp)
 
                 self.assertEqual(

@@ -5,10 +5,10 @@ python:
 services:
   - docker
 
-install: docker build -t radiome-flow/radiome . && docker build -t radiome-flow/radiome:ci-test -f Dockerfile.test .
+install: docker build -t radiome-lab/radiome . && docker build -t radiome-lab/radiome:ci-test -f Dockerfile.test .
 
 before_script: env | grep -E -- 'TOXENV|CI|TRAVIS|TRAVIS_*|CODECOV_*' > ./travis.env
-script: docker run --env-file=./travis.env radiome-flow/radiome:ci-test
+script: docker run --env-file=./travis.env radiome-lab/radiome:ci-test
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the

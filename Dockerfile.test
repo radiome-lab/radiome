@@ -1,4 +1,4 @@
-FROM radiome-flow/radiome
+FROM radiome-lab/radiome
 
 # Create environments for Tox testing
 RUN conda create -y --name py36 python=3.6

@@ -3,6 +3,11 @@ MAINTAINER The C-PAC Team <cnl@childmind.org>
 
 RUN apt-get update
 
+# Install the validator
+RUN apt-get install -y curl && \
+     curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
+     apt-get install -y nodejs
+RUN npm install -g bids-validator
 
 # Install Ubuntu dependencies and utilities
 RUN apt-get install -y \
@@ -85,14 +90,11 @@ ENV PATH=/opt/afni:$PATH
 ENV PATH=/usr/lib/ants:$PATH
 RUN apt-get install -y ants
 
-ENV PATH=/usr/local/miniconda/bin:$PATH
 # Install and setup Miniconda
+ENV PATH=/usr/local/miniconda/bin:$PATH
 RUN curl -sO https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash Miniconda3-latest-Linux-x86_64.sh -b -p /usr/local/miniconda && \
     rm Miniconda3-latest-Linux-x86_64.sh
-
-ENV PATH=/usr/lib/ants:$PATH
-RUN apt-get install -y ants
 
 RUN conda init
 RUN conda update -n base -c defaults conda
@@ -101,5 +103,5 @@ RUN conda update -n base -c defaults conda
 COPY . /code
 WORKDIR /code
 RUN pip install -e '.'
-RUN chmod +x /code/radiome/cli.py
-ENTRYPOINT ['/code/radiome/cli.py']
+#RUN chmod +x /code/radiome/cli.py
+#ENTRYPOINT ['/code/radiome/cli.py']
