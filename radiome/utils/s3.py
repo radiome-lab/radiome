@@ -15,7 +15,7 @@ class S3Resource(Resource, os.PathLike):
         if not content.lower().startswith("s3://"):
             raise KeyError(f'{content} is not a valid S3 address.')
         if aws_cred_profile is not None:
-            self._client = s3fs.S3FileSystem(profile=aws_cred_profile)
+            self._client = s3fs.S3FileSystem(anon=False, profile_name=aws_cred_profile)
         elif aws_cred_path is not None:
             if aws_cred_path == 'env':
                 self._client = s3fs.S3FileSystem()
@@ -84,6 +84,8 @@ class S3Resource(Resource, os.PathLike):
 def get_profile_credentials(path: str, profile_name='default'):
     config = ConfigParser()
     config.read(path)
+    if profile_name != 'default':
+        profile_name = f'profile {profile_name}'
     try:
         aws_access_key_id = config.get(profile_name, 'aws_access_key_id')
         aws_secret_access_key = config.get(profile_name, 'aws_secret_access_key')

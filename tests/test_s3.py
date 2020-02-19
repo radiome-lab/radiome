@@ -1,13 +1,14 @@
 import os
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 import filecmp
 import boto3
 import s3fs
 from moto import mock_s3
 
-from radiome.utils.s3 import S3Resource
+from radiome.utils.s3 import S3Resource, get_profile_credentials
 
 bucket_name = 'mybucket'
 test_data = [
@@ -53,3 +54,27 @@ class S3ClientTestCase(unittest.TestCase):
         res = []
         s3res.walk(lambda x, y, z: res.append(z), filter=lambda x, y, z: len(z) == 2)
         self.assertListEqual(res[0], ['builder.yml', 'config.yml'])
+
+    @mock.patch.dict(os.environ, {'HOME': tempfile.mkdtemp()})
+    def test_credentials(self):
+        fake_home = os.environ['HOME']
+        aws_path = f'{fake_home}/.aws'
+        Path(aws_path).mkdir(parents=True, exist_ok=True)
+        Path(f'{aws_path}/config').write_text('[default]\n'
+                                              'aws_access_key_id = testing\n'
+                                              'aws_secret_access_key = testing1\n\n'
+                                              '[profile project1]\n'
+                                              'aws_access_key_id = testing\n'
+                                              'aws_secret_access_key = testing2\n')
+
+        key, secret = get_profile_credentials(f'{aws_path}/config').values()
+        self.assertEqual(key, 'testing')
+        self.assertEqual(secret, 'testing1')
+
+        key, secret = get_profile_credentials(f'{aws_path}/config', profile_name='project1').values()
+        self.assertEqual(key, 'testing')
+        self.assertEqual(secret, 'testing2')
+
+        s3_from_env = S3Resource('s3://mybucket', tempfile.mkdtemp(), aws_cred_path='env')
+        s3_from_file = S3Resource('s3://mybucket', tempfile.mkdtemp(), aws_cred_path=f'{aws_path}/config')
+        s3_with_profile = S3Resource('s3://mybucket', tempfile.mkdtemp(), aws_cred_profile='project1')
