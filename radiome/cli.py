@@ -111,9 +111,9 @@ def build_context(args) -> pipeline.Context:
     else:
         context.working_dir = args.working_dir or os.path.join(args.outputs_dir, 'scratch')
         context.outputs_dir = args.outputs_dir
+        Path(context.outputs_dir).mkdir(parents=True, exist_ok=True)
 
     Path(context.working_dir).mkdir(parents=True, exist_ok=True)
-    Path(context.outputs_dir).mkdir(parents=True, exist_ok=True)
 
     # Check the input dataset.
     if args.bids_dir.lower().startswith("s3://"):
@@ -145,7 +145,7 @@ def build_context(args) -> pipeline.Context:
     context.n_cpus = min(args.n_cpus or 1, psutil.cpu_count())
 
     # BIDS Validation
-    if args.enable_bids_validator and not args.bids_dir.lower.startswith('s3://'):
+    if args.enable_bids_validator and not args.bids_dir.lower().startswith('s3://'):
         if not shutil.which('bids-validator'):
             raise OSError('BIDS Validator is not correctly set up in your system!'
                           'Please refer to https://github.com/bids-standard/bids-validator'

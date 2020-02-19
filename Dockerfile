@@ -5,7 +5,7 @@ RUN apt-get update
 
 # Install the validator
 RUN apt-get install -y curl && \
-     curl -sL https://deb.nodesource.com/setup_11.x | bash - && \
+     curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
      apt-get install -y nodejs
 RUN npm install -g bids-validator
 

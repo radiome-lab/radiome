@@ -49,16 +49,10 @@ class CLITestCase(unittest.TestCase):
             res.bids_dir = os.path.abspath('./NotFound')
             cli.build_context(res)
 
-        with self.assertRaises(NotADirectoryError):
-            res = copy.copy(self.parsed)
-            res.outputs_dir = 's3://name1/name2'
-            res.working_dir = None
-            cli.build_context(res)
-
         res = copy.copy(self.parsed)
         res.outputs_dir = 's3://name1/name2'
         ctx = cli.build_context(res)
-        self.assertEqual(ctx.outputs_dir, res.outputs_dir)
+        self.assertEqual(str(ctx.outputs_dir), res.outputs_dir)
         self.assertEqual(ctx.working_dir, self.temp_working_dir)
         res.outputs_dir = self.temp_out_dir
         res.working_dir = None
@@ -93,6 +87,7 @@ class CLITestCase(unittest.TestCase):
     @mock.patch.dict(os.environ, {'PATH': ''})
     def test_bids_validation_without_executable(self):
         res = copy.deepcopy(self.parsed)
+        res.bids_dir = tempfile.mkdtemp()
         res.enable_bids_validator = True
         with self.assertRaises(OSError):
             cli.build_context(res)
@@ -100,6 +95,7 @@ class CLITestCase(unittest.TestCase):
     @mock.patch('subprocess.run')
     def test_bids_validation(self, mock_subproc_run):
         res = copy.deepcopy(self.parsed)
+        res.bids_dir = tempfile.mkdtemp()
         res.enable_bids_validator = True
 
         class Object(object):
@@ -111,7 +107,7 @@ class CLITestCase(unittest.TestCase):
         completed_process.returncode = 0
         mock_subproc_run.return_value = completed_process
         cli.build_context(res)
-        self.assertEqual(mock_subproc_run.call_args[0][0][1], self.args[0])
+        self.assertEqual(mock_subproc_run.call_args[0][0][1], res.bids_dir)
 
         with self.assertRaises(ValueError):
             completed_process.returncode = 1

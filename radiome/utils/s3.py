@@ -10,7 +10,7 @@ from radiome.resource_pool import Resource
 logger = logging.getLogger(__name__)
 
 
-class S3Resource(Resource):
+class S3Resource(Resource, os.PathLike):
     def __init__(self, content: str, working_dir: str = None, aws_cred_path: str = None, aws_cred_profile: str = None):
         if not content.lower().startswith("s3://"):
             raise KeyError(f'{content} is not a valid S3 address.')
@@ -26,8 +26,6 @@ class S3Resource(Resource):
                     raise FileNotFoundError(f'File {aws_cred_path} not found.')
         else:
             self._client = s3fs.S3FileSystem(anon=True)
-        if not self._client.exists(content):
-            raise KeyError(f"{content} can't be visited. Check your url or permission setting.")
         super().__init__(content)
         self._cwd = working_dir
         self._aws_cred_path = aws_cred_path
@@ -43,6 +41,12 @@ class S3Resource(Resource):
             # TODO: dir vs file
             self._client.get(self.content, self._cached)
             return self._cached
+
+    def __fspath__(self):
+        return self.__call__()
+
+    def __str__(self):
+        return self.content
 
     def upload(self, path) -> None:
         if not os.path.exists(path):
