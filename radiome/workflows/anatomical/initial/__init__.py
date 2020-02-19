@@ -45,6 +45,6 @@ def create_workflow(configuration, resource_pool: ResourcePool, context):
         )
         # anat_reorient.in_file = n4.output_image
         anat_reorient.in_file = output_node
-        rp[R('T1w', label='initial')] = anat_reorient.out_file.with_output_name('initial')
+        rp[R('T1w', label='initial')] = anat_reorient.out_file % 'initial'
 
     return resource_pool

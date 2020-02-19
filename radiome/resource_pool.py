@@ -1,10 +1,9 @@
 import itertools
-import os
 import re
 from collections import OrderedDict
 from typing import Any, Union, List, Tuple, Set, Dict, Iterator
 
-from radiome.utils import Hashable, s3
+from radiome.utils import Hashable
 
 
 class Strategy(Hashable):
@@ -516,33 +515,6 @@ class Resource(Hashable):
         return {}
 
 
-class FileResource(Resource):
-    def __init__(self, content: str, working_dir: str = None, aws_cred_path: str = None):
-        if content.lower().startswith("s3://"):
-            if working_dir is None or not os.path.exists(working_dir):
-                raise IOError(f'Cannot find the working directory {working_dir}')
-            if aws_cred_path is not None and not os.path.isfile(aws_cred_path):
-                raise IOError(f'Cannot find the cred {aws_cred_path}')
-            super().__init__(content)
-        elif os.path.isfile(content):
-            super().__init__(content)
-        else:
-            raise IOError(f'Cannot find the file {content}')
-        self._cwd = working_dir
-        self._aws_cred_path = aws_cred_path
-        self._cached = None
-
-    def __call__(self, *args):
-        if self.content.lower().startswith("s3://"):
-            if self._cached is not None and os.path.exists(self._cached):
-                return self._cached
-            else:
-                self._cached = s3.download_file(self.content, self._cwd, self._aws_cred_path)
-                return self._cached
-        else:
-            return self.content
-
-
 class InvalidResource(Resource):
 
     def __init__(self, resource: Resource, exception: Exception = None):
@@ -611,7 +583,7 @@ class ResourcePool:
                     rp[rkey] = self[rkey]
 
                 return rp
-                
+
             try:
                 return self._pool[key]
             except KeyError:

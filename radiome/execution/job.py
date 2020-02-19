@@ -1,5 +1,7 @@
 import logging
+
 import cloudpickle
+
 from radiome.resource_pool import Resource, ResourcePool
 from radiome.utils import Hashable
 
@@ -199,7 +201,7 @@ class ComputedResource(Job, Resource):
         self._content = (self._job, self._field)
         self._inputs = {'state': self._job}
 
-    def with_output_name(self, name: str) -> 'ComputedResource':
+    def __mod__(self, name: str) -> 'ComputedResource':
         self._output_name = name
         return self
 

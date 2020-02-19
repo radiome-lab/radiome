@@ -4,13 +4,16 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
+import psutil
 import yaml
 
 from radiome import __version__, __author__, __email__
 from radiome import pipeline
+from radiome.utils.s3 import S3Resource
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format='%(asctime)s-15s %(name)s %(levelname)s: %(message)s')
@@ -100,27 +103,26 @@ def build_context(args) -> pipeline.Context:
     with open(args.config_file, 'r') as f:
         context.workflow_config = yaml.safe_load(f)
 
-    # Check the input dataset.
-    if not args.bids_dir.lower().startswith("s3://") and not os.path.exists(args.bids_dir):
-        raise ValueError(f"Invalid inputs dir {args.bids_dir}!")
-    context.inputs_dir = args.bids_dir
-
     # Check the output directory.
     if args.outputs_dir.lower().startswith("s3://"):
-        if args.working_dir is None:
-            raise NotADirectoryError("A local working dir must be specified when use an s3 bucket as output!")
-        else:
-            context.outputs_dir = args.outputs_dir
-            context.working_dir = args.working_dir
+        context.working_dir = args.working_dir or tempfile.mkdtemp(prefix='rdm')
+        context.outputs_dir = S3Resource(args.outputs_dir, context.working_dir, args.aws_output_creds_path,
+                                         args.aws_output_creds_profile)
     else:
-        Path(args.outputs_dir).mkdir(parents=True, exist_ok=True)
+        context.working_dir = args.working_dir or os.path.join(args.outputs_dir, 'scratch')
         context.outputs_dir = args.outputs_dir
 
-        if args.working_dir is None:
-            context.working_dir = f'{args.outputs_dir}/scratch'
-        else:
-            context.working_dir = args.working_dir
-        Path(context.working_dir).mkdir(parents=True, exist_ok=True)
+    Path(context.working_dir).mkdir(parents=True, exist_ok=True)
+    Path(context.outputs_dir).mkdir(parents=True, exist_ok=True)
+
+    # Check the input dataset.
+    if args.bids_dir.lower().startswith("s3://"):
+        context.inputs_dir = S3Resource(args.bids_dir, context.working_dir, args.aws_input_creds_path,
+                                        args.aws_input_creds_profile)
+    else:
+        if not os.path.exists(args.bids_dir):
+            raise ValueError(f"Invalid inputs dir {args.bids_dir}!")
+        context.inputs_dir = args.bids_dir
 
     # Participant label
     context.participant_label = args.participant_label
@@ -140,10 +142,10 @@ def build_context(args) -> pipeline.Context:
         context.memory = 6 * 1024
 
     # Set up max core allowed
-    context.n_cpus = args.n_cpus or 1
+    context.n_cpus = min(args.n_cpus or 1, psutil.cpu_count())
 
     # BIDS Validation
-    if args.enable_bids_validator:
+    if args.enable_bids_validator and not args.bids_dir.lower.startswith('s3://'):
         if not shutil.which('bids-validator'):
             raise OSError('BIDS Validator is not correctly set up in your system!'
                           'Please refer to https://github.com/bids-standard/bids-validator'
