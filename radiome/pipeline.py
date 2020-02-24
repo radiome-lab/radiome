@@ -33,8 +33,9 @@ def load_resource(inputs_dir: Union[str, S3Resource], working_dir: str, resource
         if 'nii' in f:
             filename: str = f.split('.')[0]
             if participant_label is None or any([label in filename for label in participant_label]):
-                resource_pool[filename] = inputs_dir % f's3://{os.path.join(root, f)}' if is_s3 else Resource(
-                    os.path.join(root, f))
+                resource_pool[filename] = inputs_dir % f's3://{os.path.join(root, f)}' \
+                    if is_s3 \
+                    else Resource(os.path.join(root, f))
                 logger.info(f'Added {filename} to the resource pool.')
 
     if is_s3:

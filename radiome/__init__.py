@@ -2,6 +2,7 @@
 
 """Top-level package for radiome."""
 
-__author__ = """Cameron Craddock"""
+__author__ = """Cameron Craddock, Anibal Solon, Pu Zhao"""
 __email__ = 'cameron.craddock@gmail.com'
 __version__ = '0.1.0'
+__supporting_templates = ['1.0']
