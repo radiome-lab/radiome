@@ -53,7 +53,7 @@ class S3ClientTestCase(unittest.TestCase):
         # Test walk
         res = []
         s3res.walk(lambda x, y, z: res.append(z), filter=lambda x, y, z: len(z) == 2)
-        self.assertListEqual(res[0], ['builder.yml', 'config.yml'])
+        self.assertListEqual(res[0], ['__init__.py', 'spec.yml'])
 
     @mock.patch.dict(os.environ, {'HOME': tempfile.mkdtemp()})
     def test_credentials(self):

@@ -25,8 +25,9 @@ class Context:
     pipeline_config: Dict = None
 
 
-def load_resource(inputs_dir: Union[str, S3Resource], working_dir: str, resource_pool: ResourcePool,
-                  participant_label: List[str] = None):
+def load_resource(resource_pool: ResourcePool, context: Context):
+    inputs_dir = context.inputs_dir
+    participant_label = context.participant_label
     is_s3 = isinstance(inputs_dir, S3Resource)
 
     def add_to_resource(root, dirs, f):
@@ -49,7 +50,7 @@ def load_resource(inputs_dir: Union[str, S3Resource], working_dir: str, resource
 
 def build(context: Context, **kwargs):
     rp = ResourcePool()
-    load_resource(context.inputs_dir, context.working_dir, rp, context.participant_label)
+    load_resource(rp, context)
     for entry, params in schema.steps(context.pipeline_config):
         loader.load(entry)(params, rp, context)
     DependencySolver(rp, work_dir=f'{context.outputs_dir}/derivatives').execute(executor=DaskExecution())
