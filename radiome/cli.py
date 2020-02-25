@@ -101,7 +101,7 @@ def build_context(args) -> pipeline.Context:
     if not os.path.isfile(args.config_file):
         raise FileNotFoundError(f"Can't find config file {args.config_file}!")
     with open(args.config_file, 'r') as f:
-        context.workflow_config = yaml.safe_load(f)
+        context.pipeline_config = yaml.safe_load(f)
     print(f'Config file: {args.config_file}.')
 
     # Check the output directory.

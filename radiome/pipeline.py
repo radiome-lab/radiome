@@ -1,12 +1,14 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Union
+from typing import List, Union, Dict
 
 from radiome.execution import DependencySolver, workflow as wf
 from radiome.execution.executor import DaskExecution
 from radiome.resource_pool import ResourcePool, Resource
 from radiome.utils.s3 import S3Resource
+from radiome.schema import schema, ValidationError
+from cerberus import Validator
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ class Context:
     memory: int = None
     save_working_dir: bool = True
     file_logging: bool = True
-    workflow_config: List = None
+    pipeline_config: Dict = None
 
 
 def load_resource(inputs_dir: Union[str, S3Resource], working_dir: str, resource_pool: ResourcePool,
@@ -46,17 +48,21 @@ def load_resource(inputs_dir: Union[str, S3Resource], working_dir: str, resource
                 add_to_resource(root, dirs, f)
 
 
+def load_workflow(context: Context, resource_pool: ResourcePool):
+    pipeline_config = context.pipeline_config
+    validator = Validator()
+    if not validator.validate(pipeline_config, schema):
+        raise ValidationError(f"{','.join(validator.errors)}")
+    for step in pipeline_config['steps']:
+        for name, v in step.items():
+            entry: str = v['run']
+            params: dict = v['in']
+            wf.load(entry)(params, resource_pool, context)
+            logger.info(f'Loaded step {name} at {entry}')
+
+
 def build(context: Context, **kwargs):
     rp = ResourcePool()
     load_resource(context.inputs_dir, context.working_dir, rp, context.participant_label)
-
-    # TODO more doc on schema format
-    for workflow in context.workflow_config:
-        if not isinstance(workflow, dict) or len(workflow) != 1:
-            raise ValueError('Invalid config schema.')
-        for item, config in workflow.items():
-            if not isinstance(config, dict):
-                raise ValueError('Invalid config schema.')
-            wf.load(item)(config, rp, context)
+    load_workflow(context, rp)
     DependencySolver(rp, work_dir=f'{context.outputs_dir}/derivatives').execute(executor=DaskExecution())
-    # TODO: Move file from resource pool

@@ -5,8 +5,6 @@
    mask_vol: False
    # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.
    shrink_factor:  0.6
-
-
    # Vary the shrink factor at every iteration of the algorithm. This prevents the likelihood of surface getting stuck in large pools of CSF before reaching the outer surface of the brain. Default is On.
    var_shrink_fac:  True
 
