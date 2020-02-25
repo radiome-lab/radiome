@@ -1,4 +1,5 @@
-import yaml
+from typing import Tuple, Iterator
+
 from cerberus import Validator
 
 supporting_templates = ['1.0']
@@ -54,3 +55,18 @@ schema = {
                              'in': {'type': 'dict', 'required': True}}
               }}
 }
+
+
+def validate(config: dict) -> None:
+    validator = Validator()
+    if not validator.validate(config, schema):
+        raise ValidationError(f"{','.join(validator.errors)}")
+
+
+def steps(config: dict) -> Iterator[Tuple[str, str]]:
+    validate(config)
+    for step in config['steps']:
+        for name, v in step.items():
+            entry: str = v['run']
+            params: dict = v['in']
+            yield entry, params

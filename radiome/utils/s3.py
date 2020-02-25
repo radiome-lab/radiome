@@ -11,6 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class S3Resource(Resource, os.PathLike):
+    """ Amazon AWS S3 Resource.
+
+    An representation of S3 resource. It is bind to a specific s3 bucket url and credentials.
+    Once the resource is initialized, files can be downloaded, cached and uoloaded to this
+    bucket.
+
+    """
+
     def __init__(self, content: str, working_dir: str = None, aws_cred_path: str = None, aws_cred_profile: str = None):
         if not content.lower().startswith("s3://"):
             raise KeyError(f'{content} is not a valid S3 address.')
