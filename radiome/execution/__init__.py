@@ -6,7 +6,7 @@ from pathlib import Path
 import networkx as nx
 
 from radiome.resource_pool import InvalidResource, ResourcePool
-from radiome.utils import Hashable
+from radiome.utils import Hashable, bids
 from .executor import Execution
 from .job import ComputedResource, Job
 from .utils import cwd
@@ -90,9 +90,10 @@ class State(Hashable):
 
 class DependencySolver:
 
-    def __init__(self, resource_pool, work_dir='.'):
+    def __init__(self, resource_pool, output_dir='.', work_dir='.'):
         self._resource_pool = resource_pool
         self._work_dir = os.path.abspath(work_dir)
+        self._output_dir = os.path.abspath(output_dir)
 
     @property
     def graph(self):
@@ -187,13 +188,11 @@ class DependencySolver:
                 if isinstance(result, Path):
                     logger.info(f'Setting {result} in {key}')
                     ext = os.path.basename(result).split('.', 1)[-1]
-                    computed_job = job._resource
-                    directory = f'{self._work_dir}/{computed_job.output_name}/sub-{key.entities["sub"]}' \
-                        if computed_job.output_name \
-                        else f'{self._work_dir}'
-                    if not os.path.exists(directory):
-                        os.makedirs(directory)
-                    output = f'{directory}/{key}.{ext}'
+                    pipeline_name = job._resource.output_name
+                    destination = os.path.join(self._output_dir, bids.derivative_location(pipeline_name, key))
+                    if not os.path.exists(destination):
+                        os.makedirs(destination)
+                    output = os.path.join(destination, f'{key}.{ext}')
                     logger.info(f'Copying file from "{result}" to "{output}"')
                     shutil.copyfile(result, output)
                     result = output

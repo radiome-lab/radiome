@@ -53,4 +53,8 @@ def build(context: Context, **kwargs):
     load_resource(rp, context)
     for entry, params in schema.steps(context.pipeline_config):
         loader.load(entry)(params, rp, context)
-    DependencySolver(rp, work_dir=f'{context.outputs_dir}/derivatives').execute(executor=DaskExecution())
+    output_dir = os.path.join(context.working_dir, 'outputs') if isinstance(context.outputs_dir,
+                                                                            S3Resource) else context.outputs_dir
+    DependencySolver(rp, work_dir=context.working_dir, output_dir=output_dir).execute(executor=DaskExecution())
+    if isinstance(context.outputs_dir, S3Resource):
+        context.outputs_dir.upload(output_dir)
