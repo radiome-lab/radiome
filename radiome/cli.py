@@ -178,11 +178,13 @@ def print_info() -> None:
     print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
-def main():
-    args = parse_args(sys.argv[1:])
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+    params = parse_args(args)
     try:
         print_info()
-        context = build_context(args)
+        context = build_context(params)
         pipeline.build(context)
     except Exception as e:
         print(f'{type(e)}:{e}', file=sys.stderr)
