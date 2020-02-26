@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 from dataclasses import dataclass
 from typing import List, Union, Dict
 
@@ -57,4 +58,13 @@ def build(context: Context, **kwargs):
                                                                             S3Resource) else context.outputs_dir
     DependencySolver(rp, work_dir=context.working_dir, output_dir=output_dir).execute(executor=DaskExecution())
     if isinstance(context.outputs_dir, S3Resource):
-        context.outputs_dir.upload(output_dir)
+        try:
+            context.outputs_dir.upload(output_dir)
+        except Exception:
+            raise
+        else:
+            if not context.save_working_dir:
+                shutil.rmtree(context.working_dir)
+    else:
+        if not context.save_working_dir:
+            shutil.rmtree(context.working_dir)
