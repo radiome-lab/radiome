@@ -19,7 +19,7 @@ class S3Resource(Resource, os.PathLike):
 
     """
 
-    def __init__(self, content: str, working_dir: str = None, aws_cred_path: str = None, aws_cred_profile: str = None):
+    def __init__(self, content: str, working_dir: str, aws_cred_path: str = None, aws_cred_profile: str = None):
         if not content.lower().startswith("s3://"):
             raise KeyError(f'{content} is not a valid S3 address.')
         if aws_cred_profile is not None:
@@ -46,8 +46,10 @@ class S3Resource(Resource, os.PathLike):
             return self._cached
         else:
             self._cached = os.path.join(self._cwd, os.path.basename(self.content))
-            # TODO: dir vs file
-            self._client.get(self.content, self._cached)
+            if self._client.isfile(self.content):
+                self._client.get(self.content, self._cached)
+            else:
+                self._client.get(self.content, self._cached, recursive=True)
             return self._cached
 
     def __fspath__(self):
