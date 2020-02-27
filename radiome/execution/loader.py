@@ -135,7 +135,8 @@ def load(item: str) -> Callable:
         if module is None:
             module = _import_path(item, 'radiome_workflow_' + os.path.basename(item))
         logger.info(f'Loaded the workflow {item} via module name.')
-    _validate_spec(module)
+    if module is not None:
+        _validate_spec(module)
     if module and hasattr(module, 'create_workflow') and callable(module.create_workflow):
         return module.create_workflow
     raise ValueError(f'Invalid workflow {item}. Cannot find the create_workflow function.')

@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Union, Dict
 
 from radiome.execution import DependencySolver, loader
@@ -56,6 +57,7 @@ def build(context: Context, **kwargs):
         loader.load(entry)(params, rp, context)
     output_dir = os.path.join(context.working_dir, 'outputs') if isinstance(context.outputs_dir,
                                                                             S3Resource) else context.outputs_dir
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     DependencySolver(rp, work_dir=context.working_dir, output_dir=output_dir).execute(executor=DaskExecution())
     if isinstance(context.outputs_dir, S3Resource):
         try:
