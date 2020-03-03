@@ -29,6 +29,8 @@ def _import_name(name: str) -> Optional[ModuleType]:
         will be returned. Otherwise, None will be returned.
     """
     if name in sys.modules:
+        # Necessary for mocking function to work
+        importlib.reload(sys.modules[name])
         return sys.modules[name]
     elif importlib.util.find_spec(name) is not None:
         return importlib.import_module(name)
