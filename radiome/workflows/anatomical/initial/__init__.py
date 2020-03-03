@@ -1,10 +1,8 @@
-from cerberus.validator import Validator
 from nipype.interfaces import afni
 from nipype.interfaces import ants
 
 from radiome.execution.nipype import NipypeJob
 from radiome.resource_pool import ResourcePool, ResourceKey as R
-from .schema import schema
 
 
 # TODO input validation by resouce metadata (variant, flags, type)
@@ -14,11 +12,6 @@ from .schema import schema
 
 
 def create_workflow(configuration, resource_pool: ResourcePool, context):
-    validator = Validator(schema, allow_unknown=True, purge_unknown=True)
-    if not validator.validate(configuration):
-        raise ValueError(
-            f'Invalid config file {",".join([str(key) + " " + str(val) for key, val in validator.errors.items()])}')
-
     for _, rp in resource_pool[['T1w']]:
         anatomical_image = rp[R('T1w')]
 

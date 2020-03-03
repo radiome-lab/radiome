@@ -11,7 +11,7 @@ from moto import mock_s3
 from radiome import cli
 from radiome.resource_pool import ResourceKey
 from radiome.utils.s3 import S3Resource
-from .utils import MockJob
+from radiome.utils.mocks import MockJob
 
 cases = [{
     'inputs': 's3://fcp-indi/data/Projects/ABIDE/RawDataBIDS/Leuven_1',

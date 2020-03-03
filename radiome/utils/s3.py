@@ -20,8 +20,18 @@ class S3Resource(Resource, os.PathLike):
     """
 
     def __init__(self, content: str, working_dir: str, aws_cred_path: str = None, aws_cred_profile: str = None):
+        """
+        Initialize an S3 client, provide credentials through aws_cred_path or aws_cred_profile. Otherwise the client
+        will try to connect anonymously.
+
+        Args:
+            content: the S3 bucket url.
+            working_dir: the temporary dir for caching S3 files.
+            aws_cred_path: the path of credit files, If the value is 'env', read from environment based on boto3 rules.
+            aws_cred_profile: the aws profile name. Read from env.
+        """
         if not content.lower().startswith("s3://"):
-            raise KeyError(f'{content} is not a valid S3 address.')
+            content = f's3://{content}'
         if aws_cred_profile is not None:
             self._client = s3fs.S3FileSystem(anon=False, profile_name=aws_cred_profile)
         elif aws_cred_path is not None:
@@ -41,6 +51,16 @@ class S3Resource(Resource, os.PathLike):
         self._cached = None
 
     def __call__(self, *args):
+        """
+        Download files or directories to the working dir. Cache will be used if called multiple times.
+
+        Args:
+            *args: For further use.
+
+        Returns:
+            The path of downloaded files and directories.
+
+        """
         logger.info(f'Pulling s3 file from {self.content}')
         if self._cached is not None and os.path.exists(self._cached):
             return self._cached
@@ -59,11 +79,26 @@ class S3Resource(Resource, os.PathLike):
         return self.content
 
     def upload(self, path) -> None:
+        """
+        Upload path to the S3 bucket.
+
+        Args:
+            path: The source directory.
+        """
         if not os.path.exists(path):
             raise IOError(f"Can't read the path {path}.")
         self._client.put(path, self.content, recursive=True)
 
     def walk(self, callback: Callable = None, filter: Callable = None, file_only: bool = False) -> None:
+        """
+        Iterate the S3 bucket using the same style as os.walk, a callback must be provided.
+
+        Args:
+            callback: Callback for the iteration.
+            filter: Predicate for the iteration.
+            file_only:
+        """
+
         def apply(*args):
             if filter is None:
                 callback(*args)
@@ -79,12 +114,32 @@ class S3Resource(Resource, os.PathLike):
                 apply(root, dir, files)
 
     def __truediv__(self, key: str) -> 'S3Resource':
+        """
+        Append key to the current bucket and form a new path. Use the same configuration.
+
+        Args:
+            key: File or subdirectory under the current bucket.
+
+        Returns:
+            A new S3 client with updated path.
+
+        """
         if not isinstance(key, str):
             raise NotImplementedError
         else:
             return S3Resource(os.path.join(self.content, key), self._cwd, self._aws_cred_path, self._aws_cred_profile)
 
     def __mod__(self, key: str) -> 'S3Resource':
+        """
+        Replace the current path with key and return a new client. Use the same configuration.
+
+        Args:
+            key: S3 path to replace current one.
+
+        Returns:
+            A new S3 client with updated path.
+
+        """
         if not isinstance(key, str):
             raise NotImplementedError
         else:

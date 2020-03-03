@@ -1,6 +1,9 @@
 import copy
+import importlib
 import logging
 import os
+import sys
+import types
 from pathlib import Path
 
 from nipype.interfaces.base import File
@@ -12,6 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 class NipypeJob(Job):
+    """ Nipype job mock for testing.
+
+    Mock that emulates the behavior and APIs of NipypeJob, but do not execute the commandline of nipype jobs.
+    It will create fake outputs based on the outputs traits.
+
+    """
+
     def __init__(self, interface, reference=None):
         super().__init__(reference=reference)
         self._interface = copy.deepcopy(interface)
@@ -55,6 +65,8 @@ class NipypeJob(Job):
         for k, v in kwargs.items():
             setattr(iface.inputs, k, v)
 
+        logger.info(iface.cmdline)
+
         # pick a file
         input_file = None
         for k, v in iface.inputs.get().items():
@@ -74,3 +86,22 @@ class NipypeJob(Job):
             )
             for k, _ in res.get().items()
         }
+
+
+class MockJob:
+    """ Context manager which replace Nipype job with mock at runtime.
+
+    Patch the nipype job with mocks at runtime, then recover it when exiting.
+    """
+
+    name = 'radiome.execution.nipype'
+
+    def __enter__(self):
+        if self.name in sys.modules:
+            del sys.modules[self.name]
+        sys.modules[self.name] = types.ModuleType('MockNipype')
+        sys.modules[self.name].__dict__['NipypeJob'] = NipypeJob
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        del sys.modules[self.name]
+        sys.modules[self.name] = importlib.import_module(self.name)
