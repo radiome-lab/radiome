@@ -105,19 +105,6 @@ class NormalTestCase(unittest.TestCase):
                 # Check S3 Files
                 self.assertTrue(s3.listdir(f'{bucket_path}/derivatives'))
 
-    def test_parms(self):
-        data = cases[0]
-        outputs = tempfile.mkdtemp()
-        args = [data['inputs'],
-                outputs,
-                '--config', data['config'],
-                '--participant_label', *data['label'],
-                ]
-        cli.main(args)
-        print()
-        print()
-
-
 
 if __name__ == '__main__':
     unittest.main()
