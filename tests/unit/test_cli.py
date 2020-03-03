@@ -11,7 +11,7 @@ class CLITestCase(unittest.TestCase):
     def setUp(self):
         self.temp_out_dir = tempfile.mkdtemp()
         self.temp_working_dir = tempfile.mkdtemp()
-        self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.curdir, 'data/builder.yml')
+        self.config_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/builder.yml')
         self.args = ['s3://fcp-indi/data/Projects/ABIDE/RawDataBIDS/Leuven_1',
                      self.temp_out_dir,
                      '--config', self.config_file_path,
@@ -41,7 +41,7 @@ class CLITestCase(unittest.TestCase):
         # mutation test
         with self.assertRaises(FileNotFoundError):
             res = copy.copy(self.parsed)
-            res.config_file = os.path.abspath('./data')
+            res.config_file = os.path.abspath('data')
             cli.build_context(res)
 
         with self.assertRaises(ValueError):

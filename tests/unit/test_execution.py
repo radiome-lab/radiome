@@ -6,8 +6,10 @@ from radiome.execution.job import PythonJob
 from radiome.utils import Hashable
 
 import logging
+
 FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(format=FORMAT)
+
 
 def basename(path):
     import os
@@ -16,20 +18,24 @@ def basename(path):
         'dirname': os.path.dirname(path),
     }
 
+
 def reversed_string(path):
     return {
         'reversed': str(path[::-1]),
     }
+
 
 def subject_id(filename):
     return {
         'sub': filename.split('_')[0],
     }
 
+
 def join_path(dirname, base):
     return {
         'path': f'{dirname}/{base}'
     }
+
 
 def timestamp(delay):
     import time
@@ -38,6 +44,7 @@ def timestamp(delay):
     return {
         'time': time.time()
     }
+
 
 A00008326_file = 's3://fcp-indi/data/Projects/RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/anat/sub-A00008326_ses-BAS1_T1w.nii.gz'
 A00008326_dir = 's3://fcp-indi/data/Projects/RocklandSample/RawDataBIDSLatest/sub-A00008326/ses-BAS1/anat'
@@ -67,16 +74,13 @@ class TestExecution(TestCase):
             srp[R('T1w', label='base')] = file_basename.path
             srp[R('T1w', label='dir')] = file_basename.dirname
 
-
             file_reversed = PythonJob(function=reversed_string)
             file_reversed.path = file_basename.path
             srp[R('T1w', label='baserev')] = file_reversed.reversed
 
-
             filename_subject_id = PythonJob(function=subject_id)
             filename_subject_id.filename = file_basename.path
             srp[R('T1w', label='sub')] = filename_subject_id.sub
-
 
             file_join_path = PythonJob(function=join_path)
             file_join_path.dirname = file_basename.dirname
@@ -84,20 +88,21 @@ class TestExecution(TestCase):
             srp[R('T1w', label='crazypath')] = file_join_path.path
 
         for executor in executors[1:]:
-
             res_rp = DependencySolver(self.rp).execute(executor=executor())
 
             self.assertIn(R('sub-A00008326_ses-BAS1_label-base_T1w'), res_rp)
             self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-base_T1w')].content, A00008326_base)
             self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-baserev_T1w')].content, A00008326_base[::-1])
             self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-sub_T1w')].content, 'sub-A00008326')
-            self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-crazypath_T1w')].content, f'{A00008326_dir}/{A00008326_base[::-1]}')
+            self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-crazypath_T1w')].content,
+                             f'{A00008326_dir}/{A00008326_base[::-1]}')
 
             self.assertIn(R('sub-A00008399_ses-BAS1_label-base_T1w'), res_rp)
             self.assertEqual(res_rp[R('sub-A00008399_ses-BAS1_label-base_T1w')].content, A00008399_base)
             self.assertEqual(res_rp[R('sub-A00008399_ses-BAS1_label-baserev_T1w')].content, A00008399_base[::-1])
             self.assertEqual(res_rp[R('sub-A00008399_ses-BAS1_label-sub_T1w')].content, 'sub-A00008399')
-            self.assertEqual(res_rp[R('sub-A00008399_ses-BAS1_label-crazypath_T1w')].content, f'{A00008399_dir}/{A00008399_base[::-1]}')
+            self.assertEqual(res_rp[R('sub-A00008399_ses-BAS1_label-crazypath_T1w')].content,
+                             f'{A00008399_dir}/{A00008399_base[::-1]}')
 
     def test_intermediary(self):
 
@@ -131,10 +136,12 @@ class TestExecution(TestCase):
         res_rp = DependencySolver(self.rp).execute(executor=Execution())
 
         self.assertIn(R('sub-A00008326_ses-BAS1_label-base_T1w'), res_rp)
-        self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-crazypath_T1w')].content, f'{A00008326_dir}/{A00008326_base[::-1]}')
+        self.assertEqual(res_rp[R('sub-A00008326_ses-BAS1_label-crazypath_T1w')].content,
+                         f'{A00008326_dir}/{A00008326_base[::-1]}')
 
         self.assertIn(R('sub-A00008399_ses-BAS1_label-base_T1w'), res_rp)
-        self.assertEqual(res_rp[R('sub-A00008399_ses-BAS1_label-crazypath_T1w')].content, f'{A00008399_dir}/{A00008399_base[::-1]}')
+        self.assertEqual(res_rp[R('sub-A00008399_ses-BAS1_label-crazypath_T1w')].content,
+                         f'{A00008399_dir}/{A00008399_base[::-1]}')
 
     def test_parallel(self):
 
@@ -150,7 +157,6 @@ class TestExecution(TestCase):
         delayed2.delay = Resource(wait)
         rp[R('T1w', label='time2')] = delayed2.time
 
-
         res_rp = DependencySolver(rp).execute(executor=DaskExecution())
 
         self.assertIn(R('label-time1_T1w'), res_rp)
@@ -163,7 +169,6 @@ class TestExecution(TestCase):
         #  so the difference between their finish time execution will be
         #  lesser than the time each one took to compute
         self.assertLess(time1 - time2, wait)
-
 
         res_rp = DependencySolver(rp).execute(executor=Execution())
 
@@ -241,7 +246,6 @@ class TestExecution(TestCase):
 
         with self.assertRaises(ValueError):
             G = DependencySolver(rp).graph
-
 
         rp = ResourcePool()
 

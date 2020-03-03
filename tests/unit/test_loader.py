@@ -17,7 +17,7 @@ class LoaderTestCase(unittest.TestCase):
             loader._resolve_git('git://a/b', dest)
 
         with self.assertRaises(FileExistsError):
-            loader._resolve_git('gh://octocat/Hello-World', os.path.abspath('.'))
+            loader._resolve_git('gh://octocat/Hello-World', os.path.abspath('..'))
 
     def test_load(self):
         module_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/fake_workflow')
