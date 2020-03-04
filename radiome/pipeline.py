@@ -15,17 +15,16 @@ from radiome.utils.s3 import S3Resource
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Context:
-    working_dir: Union[str, os.PathLike] = None
-    inputs_dir: Union[str, os.PathLike, S3Resource] = None
-    outputs_dir: Union[str, os.PathLike, S3Resource] = None
-    participant_label: List = None
-    n_cpus: int = None
-    memory: int = None
-    save_working_dir: bool = True
-    file_logging: bool = True
-    pipeline_config: Dict = None
+    working_dir: Union[str, os.PathLike]
+    inputs_dir: Union[str, os.PathLike, S3Resource]
+    outputs_dir: Union[str, os.PathLike, S3Resource]
+    participant_label: List
+    n_cpus: int
+    memory: int
+    save_working_dir: bool
+    pipeline_config: Dict
 
 
 def load_resource(resource_pool: ResourcePool, context: Context):

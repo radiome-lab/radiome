@@ -95,63 +95,63 @@ def parse_args(args):
 
 
 def build_context(args) -> pipeline.Context:
-    context = pipeline.Context()
+    mapping = {}
     print("Building the pipeline....")
     # Load config.
     if not os.path.isfile(args.config_file):
         raise FileNotFoundError(f"Can't find config file {args.config_file}!")
     with open(args.config_file, 'r') as f:
-        context.pipeline_config = yaml.safe_load(f)
+        mapping['pipeline_config'] = yaml.safe_load(f)
     print(f'Config file: {args.config_file}.')
 
     # Check the output directory.
     if args.outputs_dir.lower().startswith("s3://"):
-        context.working_dir = args.working_dir or tempfile.mkdtemp(prefix='rdm')
-        context.outputs_dir = S3Resource(args.outputs_dir, context.working_dir, args.aws_output_creds_path,
-                                         args.aws_output_creds_profile)
+        mapping['working_dir'] = args.working_dir or tempfile.mkdtemp(prefix='rdm')
+        mapping['outputs_dir'] = S3Resource(args.outputs_dir, mapping['working_dir'], args.aws_output_creds_path,
+                                            args.aws_output_creds_profile)
     else:
-        context.working_dir = args.working_dir or os.path.join(args.outputs_dir, 'scratch')
-        context.outputs_dir = args.outputs_dir
-        Path(context.outputs_dir).mkdir(parents=True, exist_ok=True)
+        mapping['working_dir'] = args.working_dir or os.path.join(args.outputs_dir, 'scratch')
+        mapping['outputs_dir'] = args.outputs_dir
+        Path(mapping['outputs_dir']).mkdir(parents=True, exist_ok=True)
 
-    Path(context.working_dir).mkdir(parents=True, exist_ok=True)
-    print(f'Working directory: {context.working_dir}.')
-    print(f'Output directory: {context.outputs_dir}.')
+    Path(mapping['working_dir']).mkdir(parents=True, exist_ok=True)
+    print(f'Working directory: {mapping["working_dir"]}.')
+    print(f'Output directory: {mapping["outputs_dir"]}.')
 
     # Check the input dataset.
     if args.bids_dir.lower().startswith("s3://"):
-        context.inputs_dir = S3Resource(args.bids_dir, context.working_dir, args.aws_input_creds_path,
-                                        args.aws_input_creds_profile)
+        mapping['inputs_dir'] = S3Resource(args.bids_dir, mapping['working_dir'], args.aws_input_creds_path,
+                                           args.aws_input_creds_profile)
     else:
         if not os.path.exists(args.bids_dir):
             raise ValueError(f"Invalid inputs dir {args.bids_dir}!")
-        context.inputs_dir = args.bids_dir
-    print(f'Input directory: {context.inputs_dir}.')
+        mapping['inputs_dir'] = args.bids_dir
+    print(f'Input directory: {mapping["inputs_dir"]}.')
 
     # Participant label
-    context.participant_label = args.participant_label
-    if context.participant_label is not None:
+    mapping['participant_label'] = args.participant_label
+    if mapping['participant_label'] is not None:
         print(f'Participants to process: {[f"sub-{label}" for label in args.participant_label]}')
 
     # Set up the logging
     if not args.disable_file_logging:
-        log_path = f'{context.working_dir}/{datetime.now().strftime("radiome_%Y_%m_%d_%H_%M.log")}'
+        log_path = f'{mapping["working_dir"]}/{datetime.now().strftime("radiome_%Y_%m_%d_%H_%M.log")}'
         file_handler = logging.FileHandler(log_path)
         logging.getLogger().addHandler(file_handler)
         print(f'Logging at {log_path}')
 
     # Set up maximum memory allowed.
     if args.mem_gb:
-        context.memory = args.mem_gb * 1024
+        mapping['memory'] = args.mem_gb * 1024
     elif args.mem_mb:
-        context.memory = args.mem_mb
+        mapping['memory'] = args.mem_mb
     else:
-        context.memory = 6 * 1024
-    print(f'Max Memory Available: {context.memory}MB')
+        mapping['memory'] = 6 * 1024
+    print(f'Max Memory Available: {mapping["memory"]}MB')
 
     # Set up max core allowed
-    context.n_cpus = min(args.n_cpus or 1, psutil.cpu_count())
-    print(f'Max Cores Available: {context.n_cpus}')
+    mapping['n_cpus'] = min(args.n_cpus or 1, psutil.cpu_count())
+    print(f'Max Cores Available: {mapping["n_cpus"]}')
 
     # BIDS Validation
     if args.enable_bids_validator and not args.bids_dir.lower().startswith('s3://'):
@@ -160,7 +160,7 @@ def build_context(args) -> pipeline.Context:
                           'Please refer to https://github.com/bids-standard/bids-validator'
                           'Command line version section for more information.')
         commands = ['bids-validator', f'--config {args.bids_validator_config}',
-                    context.inputs_dir] if args.bids_validator_config else ['bids-validator', context.inputs_dir]
+                    mapping['inputs_dir']] if args.bids_validator_config else ['bids-validator', mapping['inputs_dir']]
         print('Validating inputs again BIDS standard.......')
         completed_process = subprocess.run(commands, capture_output=True, universal_newlines=True)
         if completed_process.returncode != 0:
@@ -169,7 +169,10 @@ def build_context(args) -> pipeline.Context:
         else:
             print('BIDS Validation passed. Continue')
 
-    return context
+    # flags
+    mapping['save_working_dir'] = args.save_working_dir
+
+    return pipeline.Context(**mapping)
 
 
 def print_info() -> None:
