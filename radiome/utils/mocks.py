@@ -88,7 +88,7 @@ class NipypeJob(Job):
         }
 
 
-class MockJob:
+class mock_nipype:
     """ Context manager which replaces Nipype job with mock at runtime.
 
     Patch the nipype job with mocks at runtime, then recover it when exiting.

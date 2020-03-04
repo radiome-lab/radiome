@@ -11,7 +11,7 @@ from moto import mock_s3
 from radiome import cli
 from radiome.resource_pool import ResourceKey
 from radiome.utils.s3 import S3Resource
-from radiome.utils.mocks import MockJob
+from radiome.utils.mocks import mock_nipype
 
 cases = [{
     'inputs': 's3://fcp-indi/data/Projects/ABIDE/RawDataBIDS/Leuven_1',
@@ -31,7 +31,7 @@ cases = [{
 
 class NormalTestCase(unittest.TestCase):
     def test_run_s3_local(self):
-        with MockJob():
+        with mock_nipype():
             for data in cases:
                 if 'label' in data:
                     if isinstance(data['inputs'], S3Resource):
@@ -62,7 +62,7 @@ class NormalTestCase(unittest.TestCase):
                                 '--save_working_dir',
                                 ]
                 self.assertEqual(cli.main(args), 0)
-                working_path = os.path.join(os.path.join(data['outputs'], 'scratch'))
+                working_path = os.path.join(data['outputs'], 'scratch')
                 self.assertTrue(os.path.exists(working_path))
 
                 # Check log file
@@ -75,13 +75,14 @@ class NormalTestCase(unittest.TestCase):
                 for out in outputs:
                     filename = os.path.basename(out)
                     key = ResourceKey(filename.split('.')[0])
+                    print(key)
 
     @mock.patch.dict(os.environ, {'AWS_ACCESS_KEY_ID': 'testing', 'AWS_SECRET_ACCESS_KEY': 'testing'})
     def test_run_local_s3(self):
         data = cases[1]
-        input = S3Resource(data['inputs'], tempfile.mkdtemp())()
+        inputs = S3Resource(data['inputs'], tempfile.mkdtemp())()
 
-        with MockJob():
+        with mock_nipype():
             with mock_s3():
                 s3_client = boto3.client('s3')
                 bucket_name = 'mybucket'
@@ -90,7 +91,7 @@ class NormalTestCase(unittest.TestCase):
                 bucket_path = f's3://{bucket_name}/outputs'
                 s3.makedir(bucket_path, create_parents=True)
                 working_dir = tempfile.mkdtemp()
-                args = [input,
+                args = [inputs,
                         bucket_path,
                         '--config', data['config'],
                         '--working_dir', working_dir,
@@ -103,7 +104,19 @@ class NormalTestCase(unittest.TestCase):
                 self.assertTrue(os.listdir(working_dir))
 
                 # Check S3 Files
-                self.assertTrue(s3.listdir(f'{bucket_path}/derivatives'))
+                self.assertTrue(s3.exists(f'{bucket_path}/derivatives/afni-skullstrip/sub-0050682/anat'))
+                self.assertTrue(s3.exists(f'{bucket_path}/derivatives/initial/sub-0050682/anat'))
+
+    def test_misc_params(self):
+        with mock_nipype():
+            data = cases[1]
+            args = [data['inputs'],
+                    data['outputs'],
+                    '--config', data['config'],
+                    '--disable_file_logging'
+                    ]
+            self.assertEqual(cli.main(args), 0)
+            self.assertFalse(os.path.exists(os.path.join(data['outputs'], 'scratch')))
 
 
 if __name__ == '__main__':

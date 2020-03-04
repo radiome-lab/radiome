@@ -15,9 +15,6 @@ from radiome import __version__, __author__, __email__
 from radiome import pipeline
 from radiome.utils.s3 import S3Resource
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                    format='%(asctime)s-15s %(name)s %(levelname)s: %(message)s')
-
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Radiome Pipeline Runner')
@@ -134,9 +131,14 @@ def build_context(args) -> pipeline.Context:
         print(f'Participants to process: {[f"sub-{label}" for label in args.participant_label]}')
 
     # Set up the logging
-    if not args.disable_file_logging:
+    log_format = '%(asctime)s-15s %(name)s %(levelname)s: %(message)s'
+    if args.disable_file_logging:
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                            format=log_format)
+    else:
         log_path = f'{mapping["working_dir"]}/{datetime.now().strftime("radiome_%Y_%m_%d_%H_%M.log")}'
         file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(logging.Formatter(log_format))
         logging.getLogger().addHandler(file_handler)
         print(f'Logging at {log_path}')
 
