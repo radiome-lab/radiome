@@ -1,7 +1,7 @@
 import logging
 import os
 from configparser import ConfigParser, NoOptionError, NoSectionError, ParsingError
-from typing import Callable
+from typing import Iterator, Tuple
 
 import s3fs
 
@@ -89,29 +89,12 @@ class S3Resource(Resource, os.PathLike):
             raise IOError(f"Can't read the path {path}.")
         self._client.put(path, self.content, recursive=True)
 
-    def walk(self, callback: Callable = None, filter: Callable = None, file_only: bool = False) -> None:
+    def walk(self) -> Iterator[Tuple[str, list, list]]:
         """
-        Iterate the S3 bucket using the same style as os.walk, a callback must be provided.
-
-        Args:
-            callback: Callback for the iteration.
-            filter: Predicate for the iteration.
-            file_only:
+        Iterate the S3 bucket, the behavior is the same as os.walk.
         """
-
-        def apply(*args):
-            if filter is None:
-                callback(*args)
-            else:
-                if filter(*args):
-                    callback(*args)
-
-        for root, dir, files in self._client.walk(self.content):
-            if file_only:
-                for file in files:
-                    apply(root, dir, file)
-            else:
-                apply(root, dir, files)
+        for root, dirs, files in self._client.walk(self.content):
+            yield root, dirs, files
 
     def __truediv__(self, key: str) -> 'S3Resource':
         """

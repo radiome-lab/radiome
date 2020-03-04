@@ -1,11 +1,11 @@
+import filecmp
 import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
-import filecmp
+
 import boto3
-import s3fs
 from moto import mock_s3
 
 from radiome.utils.s3 import S3Resource, get_profile_credentials
@@ -30,30 +30,30 @@ class S3ClientTestCase(unittest.TestCase):
     def test_s3(self):
         s3_client = boto3.client('s3')
         s3_client.create_bucket(Bucket=bucket_name)
-        s3 = s3fs.S3FileSystem()
-
-        # Test download
-        s3.makedir(test_data[0]['dir'], create_parents=True)
-        target = os.path.join(test_data[0]['dir'], os.path.basename(test_data[0]['file']))
-        s3.upload(test_data[0]['file'], target)
-
-        s3res = S3Resource(f's3://{target}', tempfile.mkdtemp(), aws_cred_path='env')
-        self.assertTrue(filecmp.cmp(s3res(), test_data[0]['file'], shallow=False))
+        dst = tempfile.mkdtemp()
 
         # Test upload
-        s3res = S3Resource(f's3://{bucket_name}', tempfile.mkdtemp(), aws_cred_path='env')
-        s3res.upload(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data'))
-        # Test operator /
-        sub = s3res / 'data' / 'builder.yml'
-        # Test operator %
-        sub2 = s3res % f's3://{bucket_name}/data/builder.yml'
-        self.assertTrue(filecmp.cmp(sub(), test_data[0]['file'], shallow=False))
+        s3res = S3Resource(f's3://{bucket_name}', dst, aws_cred_path='env')
+        s3res.upload(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/s3'))
+
+        # Test download
+        sub = s3res / 's3' / 'folder' / 'test1.txt'
+        self.assertTrue(
+            filecmp.cmp(sub(), os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/s3/folder/test1.txt'),
+                        shallow=False))
+
+        sub2 = s3res % f'{bucket_name}/s3/folder/test1.txt'
+        self.assertEqual(sub(), sub())
         self.assertTrue(filecmp.cmp(sub(), sub2(), shallow=False))
 
-        # Test walk
+        # test walk
         res = []
-        s3res.walk(lambda x, y, z: res.append(z), filter=lambda x, y, z: len(z) == 2)
-        self.assertListEqual(res[0], ['__init__.py', 'spec.yml'])
+        for x, y, z in s3res.walk():
+            res.append((x, y, z))
+
+        self.assertIn(('mybucket', ['s3'], []), res)
+        self.assertIn(('mybucket/s3', ['folder'], ['test.txt']), res)
+        self.assertIn(('mybucket/s3/folder', [], ['test1.txt', 'test2.txt']), res)
 
     @mock.patch.dict(os.environ, {'HOME': tempfile.mkdtemp()})
     def test_credentials(self):
