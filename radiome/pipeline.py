@@ -52,6 +52,7 @@ def build(context: Context, **kwargs):
     output_dir = os.path.join(context.working_dir, 'outputs') if isinstance(context.outputs_dir,
                                                                             S3Resource) else context.outputs_dir
     Path(output_dir).mkdir(parents=True, exist_ok=True)
+    print('Executing pipeline.......')
     DependencySolver(rp, work_dir=context.working_dir, output_dir=output_dir).execute(executor=DaskExecution())
     if isinstance(context.outputs_dir, S3Resource):
         try:

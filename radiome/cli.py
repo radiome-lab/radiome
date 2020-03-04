@@ -133,13 +133,14 @@ def build_context(args) -> pipeline.Context:
     # Set up the logging
     log_format = '%(asctime)s-15s %(name)s %(levelname)s: %(message)s'
     if args.disable_file_logging:
-        logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-                            format=log_format)
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=log_format)
     else:
         log_path = f'{mapping["working_dir"]}/{datetime.now().strftime("radiome_%Y_%m_%d_%H_%M.log")}'
-        file_handler = logging.FileHandler(log_path)
-        file_handler.setFormatter(logging.Formatter(log_format))
-        logging.getLogger().addHandler(file_handler)
+        logging.basicConfig(
+            level=logging.INFO,
+            format=log_format,
+            handlers=[logging.FileHandler(log_path)]
+        )
         print(f'Logging at {log_path}')
 
     # Set up maximum memory allowed.
