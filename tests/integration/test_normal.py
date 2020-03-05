@@ -82,30 +82,29 @@ class NormalTestCase(unittest.TestCase):
         data = cases[1]
         inputs = S3Resource(data['inputs'], tempfile.mkdtemp())()
 
-        with mock_nipype():
-            with mock_s3():
-                s3_client = boto3.client('s3')
-                bucket_name = 'mybucket'
-                s3_client.create_bucket(Bucket=bucket_name)
-                s3 = s3fs.S3FileSystem()
-                bucket_path = f's3://{bucket_name}/outputs'
-                s3.makedir(bucket_path, create_parents=True)
-                working_dir = tempfile.mkdtemp()
-                args = [inputs,
-                        bucket_path,
-                        '--config', data['config'],
-                        '--working_dir', working_dir,
-                        '--save_working_dir'
-                        ]
-                cli.main(args)
-                self.assertEqual(cli.main(args), 0)
+        with mock_nipype(), mock_s3():
+            s3_client = boto3.client('s3')
+            bucket_name = 'mybucket'
+            s3_client.create_bucket(Bucket=bucket_name)
+            s3 = s3fs.S3FileSystem()
+            bucket_path = f's3://{bucket_name}/outputs'
+            s3.makedir(bucket_path, create_parents=True)
+            working_dir = tempfile.mkdtemp()
+            args = [inputs,
+                    bucket_path,
+                    '--config', data['config'],
+                    '--working_dir', working_dir,
+                    '--save_working_dir'
+                    ]
+            cli.main(args)
+            self.assertEqual(cli.main(args), 0)
 
-                # Check working dir
-                self.assertTrue(os.listdir(working_dir))
+            # Check working dir
+            self.assertTrue(os.listdir(working_dir))
 
-                # Check S3 Files
-                self.assertTrue(s3.exists(f'{bucket_path}/derivatives/afni-skullstrip/sub-0050682/anat'))
-                self.assertTrue(s3.exists(f'{bucket_path}/derivatives/initial/sub-0050682/anat'))
+            # Check S3 Files
+            self.assertTrue(s3.exists(f'{bucket_path}/derivatives/afni-skullstrip/sub-0050682/anat'))
+            self.assertTrue(s3.exists(f'{bucket_path}/derivatives/initial/sub-0050682/anat'))
 
     def test_misc_params(self):
         with mock_nipype():
