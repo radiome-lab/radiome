@@ -21,11 +21,15 @@ class ValidationError(Exception):
 
 
 schema = {
-    'radiomeSchemaVersion': {'check_with': _version_check, 'required': True, 'type': 'string', 'allow_unknown': True,
-                             'coerce': str},
+    'radiomeSchemaVersion': {
+        'check_with': _version_check,
+        'required': True,
+        'type': 'string',
+        'allow_unknown': True,
+        'coerce': str,
+    },
     'class': {'allowed': ['workflow', 'pipeline'], 'required': True},
     'name': {'type': 'string', 'required': True},
-
     'doc': {'type': 'string'},
     's:author': {'type': 'list'},
     's:contributor': {'type': 'list'},
@@ -33,27 +37,42 @@ schema = {
     's:codeRepository': {'type': 'string'},
     's:dateCreated': {'type': 'string'},
     's:license': {'type': 'string'},
-
-    'inputs': {'type': 'dict',
-               'dependencies': {'class': ['workflow']},
-               'valuesrules': {
-                   'type': 'dict',
-                   'schema': {
-                       'type': {'type': 'string', 'required': True,
-                                'allowed': ['boolean', 'binary', 'dict', 'float', 'integer', 'list', 'number',
-                                            'string']},
-                       'doc': {'type': 'string'}
-                   }
-               }},
-    'outputs': {'type': 'dict',
-                'dependencies': {'class': ['workflow']}},
-    'steps': {'type': 'list',
-              'dependencies': {'class': ['pipeline']},
-              'valuesrules': {
-                  'type': 'dict',
-                  'schema': {'run': {'type': 'string', 'required': True},
-                             'in': {'type': 'dict', 'required': True}}
-              }}
+    'inputs': {
+        'type': 'dict',
+        'dependencies': {'class': ['workflow']},
+        'valuesrules': {
+            'type': 'dict',
+            'schema': {
+                'type': {
+                    'type': 'string',
+                    'required': True,
+                    'allowed': [
+                        'boolean',
+                        'binary',
+                        'dict',
+                        'float',
+                        'integer',
+                        'list',
+                        'number',
+                        'string',
+                    ],
+                },
+                'doc': {'type': 'string'},
+            },
+        },
+    },
+    'outputs': {'type': 'dict', 'dependencies': {'class': ['workflow']}},
+    'steps': {
+        'type': 'list',
+        'dependencies': {'class': ['pipeline']},
+        'valuesrules': {
+            'type': 'dict',
+            'schema': {
+                'run': {'type': 'string', 'required': True},
+                'in': {'type': 'dict', 'required': True},
+            },
+        },
+    },
 }
 
 
