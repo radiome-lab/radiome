@@ -11,17 +11,6 @@ from moto import mock_s3
 from radiome.core.utils.s3 import S3Resource, get_profile_credentials
 
 bucket_name = 'mybucket'
-test_data = [
-    {'bucket': bucket_name,
-     'dir': f'{bucket_name}/build',
-     'file': os.path.join(os.path.dirname(os.path.abspath(__file__)), os.curdir, 'data/builder.yml')
-     },
-    {
-        'bucket': bucket_name,
-        'dir': f'{bucket_name}/config/file',
-        'file': os.path.join(os.path.dirname(os.path.abspath(__file__)), os.curdir, 'data/config.yml')
-    }
-]
 
 
 class S3ClientTestCase(unittest.TestCase):
