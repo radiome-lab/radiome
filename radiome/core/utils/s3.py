@@ -5,7 +5,7 @@ from typing import Iterator, Tuple
 
 import s3fs
 
-from radiome.resource_pool import Resource
+from radiome.core.resource_pool import Resource
 
 logger = logging.getLogger(__name__)
 

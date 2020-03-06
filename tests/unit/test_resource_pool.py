@@ -1,5 +1,5 @@
 from unittest import TestCase
-from radiome.resource_pool import Resource, ResourceKey as R, ResourcePool
+from radiome.core.resource_pool import Resource, ResourceKey as R, ResourcePool
 from itertools import product
 
 

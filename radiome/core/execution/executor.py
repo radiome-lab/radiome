@@ -6,7 +6,7 @@ from distributed import (Client, LocalCluster, get_client,
                          get_worker)
 from distributed.protocol.serialize import register_serialization_family
 
-from radiome.execution.job import Job
+from radiome.core.execution.job import Job
 
 logger = logging.getLogger('radiome.execution.executor')
 logger_lock = logger.getChild('lock')

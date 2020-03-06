@@ -8,7 +8,7 @@ from unittest import mock
 import boto3
 from moto import mock_s3
 
-from radiome.utils.s3 import S3Resource, get_profile_credentials
+from radiome.core.utils.s3 import S3Resource, get_profile_credentials
 
 bucket_name = 'mybucket'
 test_data = [

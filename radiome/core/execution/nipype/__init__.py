@@ -1,7 +1,7 @@
 import copy
 
-from radiome.resource_pool import Resource, ResourcePool
-from radiome.execution.job import Job, ComputedResource
+from radiome.core.resource_pool import Resource, ResourcePool
+from radiome.core.execution.job import Job, ComputedResource
 
 from nipype.interfaces.base import BaseInterface
 from nipype.interfaces.base.traits_extension import File
@@ -55,7 +55,7 @@ class NipypeJob(Job):
             setattr(iface.inputs, k, v)
 
         res = iface.run()  # add error handling
-        
+
         return {
             k: (
                 Path(v)

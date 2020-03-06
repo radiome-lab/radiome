@@ -1,6 +1,6 @@
 import os
 
-from radiome.resource_pool import ResourceKey
+from radiome.core.resource_pool import ResourceKey
 
 
 def derivative_location(pipeline_name: str, key: ResourceKey) -> str:

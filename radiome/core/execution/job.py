@@ -2,8 +2,8 @@ import logging
 
 import cloudpickle
 
-from radiome.resource_pool import Resource, ResourcePool
-from radiome.utils import Hashable
+from radiome.core.resource_pool import Resource, ResourcePool
+from radiome.core.utils import Hashable
 
 logger = logging.getLogger('radiome.execution.job')
 

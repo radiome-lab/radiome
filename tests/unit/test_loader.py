@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from radiome.execution import loader
+from radiome.core.pipeline import loader
 
 
 class LoaderTestCase(unittest.TestCase):

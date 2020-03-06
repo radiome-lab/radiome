@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 from typing import Any, Union, List, Tuple, Set, Dict, Iterator
 
-from radiome.utils import Hashable
+from radiome.core.utils import Hashable
 
 
 class Strategy(Hashable):

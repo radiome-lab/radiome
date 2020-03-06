@@ -6,11 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Union, Dict
 
-from radiome import schema
-from radiome.execution import DependencySolver, loader
-from radiome.execution.executor import DaskExecution
-from radiome.resource_pool import ResourcePool, Resource
-from radiome.utils.s3 import S3Resource
+from radiome.core import schema
+from radiome.core.execution import DependencySolver, loader
+from radiome.core.execution.executor import DaskExecution
+from radiome.core.resource_pool import ResourcePool, Resource
+from radiome.core.utils.s3 import S3Resource
 
 logger = logging.getLogger(__name__)
 

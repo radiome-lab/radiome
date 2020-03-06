@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import yaml
 from git.repo.base import Repo
 
-from radiome import schema
+from radiome.core import schema
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from setuptools import setup, find_packages
+
+from setuptools import setup, find_namespace_packages
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -28,9 +29,9 @@ if os.path.exists('requirements_dev.txt'):
         dev_requirements += test_requirements
 
 setup(
-    author="Cameron Craddock",
-    author_email='cameron.craddock@gmail.com',
-    python_requires='>=3, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
+    author="Cameron Craddock, Anibal Sólon, Pu Zhao",
+    author_email='cameron.craddock@gmail.com, anibalsolon@gmail.com, puzhao@utexas.edu',
+    python_requires='>=3, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -43,7 +44,7 @@ setup(
     description="Configurable Pipeline for the Analysis of Medical Imaging Data",
     entry_points={
         'console_scripts': [
-            'radiome=radiome.cli:main',
+            'radiome=radiome.core.cli:main',
         ],
     },
     extras_require={
@@ -55,11 +56,11 @@ setup(
     include_package_data=True,
     keywords='radiome',
     name='radiome',
-    packages=find_packages(include=['radiome', 'radiome.*']),
+    packages=find_namespace_packages(include=['radiome.*']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/radiome-flow/radiome',
+    url='https://github.com/radiome-lab/radiome',
     version='0.1.0',
     zip_safe=False,
 )

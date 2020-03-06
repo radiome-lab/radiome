@@ -9,9 +9,9 @@ import s3fs
 from moto import mock_s3
 
 from radiome import cli
-from radiome.resource_pool import ResourceKey
-from radiome.utils.s3 import S3Resource
-from radiome.utils.mocks import mock_nipype
+from radiome import ResourceKey
+from radiome import S3Resource
+from radiome import mock_nipype
 
 cases = [{
     'inputs': 's3://fcp-indi/data/Projects/ABIDE/RawDataBIDS/Leuven_1',

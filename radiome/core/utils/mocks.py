@@ -8,8 +8,8 @@ from pathlib import Path
 
 from nipype.interfaces.base import File
 
-from radiome.execution import Job, ComputedResource
-from radiome.resource_pool import Resource, ResourcePool
+from radiome.core.execution import Job, ComputedResource
+from radiome.core.resource_pool import Resource, ResourcePool
 
 logger = logging.getLogger(__name__)
 

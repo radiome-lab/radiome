@@ -11,9 +11,9 @@ from pathlib import Path
 import psutil
 import yaml
 
-from radiome import __version__, __author__, __email__
-from radiome import pipeline
-from radiome.utils.s3 import S3Resource
+from radiome.core import __version__, __author__, __email__
+from radiome.core import pipeline
+from radiome.core.utils.s3 import S3Resource
 
 
 def parse_args(args):

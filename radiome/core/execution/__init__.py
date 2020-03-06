@@ -5,8 +5,9 @@ from pathlib import Path
 
 import networkx as nx
 
-from radiome.resource_pool import InvalidResource, ResourcePool
-from radiome.utils import Hashable, bids
+from radiome.core.resource_pool import InvalidResource, ResourcePool
+from radiome.core.utils import Hashable
+from ..utils import bids
 from .executor import Execution
 from .job import ComputedResource, Job
 from .utils import cwd
