@@ -103,5 +103,7 @@ RUN conda update -n base -c defaults conda
 COPY . /code
 WORKDIR /code
 RUN pip install -e '.'
+RUN pip install git+https://github.com/puorc/radiome-initial.git
+RUN pip install git+https://github.com/puorc/radiome-afni-skullstrip.git
 #RUN chmod +x /code/radiome/cli.py
 #ENTRYPOINT ['/code/radiome/cli.py']
