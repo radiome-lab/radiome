@@ -25,15 +25,6 @@ schema = {
                              'coerce': str},
     'class': {'allowed': ['workflow', 'pipeline'], 'required': True},
     'name': {'type': 'string', 'required': True},
-
-    'doc': {'type': 'string'},
-    's:author': {'type': 'list'},
-    's:contributor': {'type': 'list'},
-    's:citation': {'type': 'string'},
-    's:codeRepository': {'type': 'string'},
-    's:dateCreated': {'type': 'string'},
-    's:license': {'type': 'string'},
-
     'inputs': {'type': 'dict',
                'dependencies': {'class': ['workflow']},
                'valuesrules': {
