@@ -56,7 +56,7 @@ setup(
     include_package_data=True,
     keywords='radiome',
     name='radiome',
-    packages=find_namespace_packages(include=['radiome.*']),
+    packages=find_namespace_packages(include=['radiome.core.*']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
