@@ -1,16 +1,9 @@
-<details>
-<summary>
-Developer Docs
-</summary>
-<p>
-
-* [How We Agile](https://github.com/radiome-flow/radiome/wiki/How-we-agile)
-* [Branches, Releases, and Versions](https://github.com/radiome-flow/radiome/wiki/Developer-Documentation---Branches,-Releases,-and-Versions)
-* [Coding Standard](https://github.com/radiome-flow/radiome/wiki/Developer-Documentation---Coding-Standard)
-* [How to contribute](https://github.com/radiome-flow/radiome/wiki/Developer-Documentation---How-to-contribute)
-* [Pipeline builder](https://github.com/radiome-flow/radiome/wiki/Developer-Documentation---Pipeline-builder)
-* [Resource pool](https://github.com/radiome-flow/radiome/wiki/Developer-Documentation---Resource-pool)
-* [Workflow Definition](https://github.com/radiome-flow/radiome/wiki/Developer-Documentation---Workflow-Definition)
-
-</p>
-</details>
+* [Home](https://github.com/radiome-lab/radiome/wiki/Home)
+* [Install](https://github.com/radiome-lab/radiome/wiki/Install)
+* [Usage](https://github.com/radiome-lab/radiome/wiki/Usage)
+* [Config](https://github.com/radiome-lab/radiome/wiki/Config)
+* [Resource Pool](https://github.com/radiome-lab/radiome/wiki/ResourcePool)
+* [Workflow](https://github.com/radiome-lab/radiome/wiki/Workflow)
+* [How to contribute](https://github.com/radiome-lab/radiome/wiki/How_to_contribute)
+* [Credits](https://github.com/radiome-lab/radiome/wiki/Credits)
+* [History](https://github.com/radiome-lab/radiome/wiki/History)
