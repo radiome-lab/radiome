@@ -95,25 +95,6 @@ def _resolve_git(url: str, destination: str) -> str:
     return destination
 
 
-def _validate_spec(module: ModuleType) -> None:
-    """
-    Check that a module has spec.yml file and the spec.yaml is valid.
-
-    Args:
-        module: The module that has been imported.
-
-    Raises:
-        FileNotFoundError: The spec.yml is not found.
-        ValidationError: Errors in validating spec.yml file.
-    """
-    spec_path = os.path.join(os.path.dirname(module.__file__), 'spec.yml')
-    if not os.path.isfile(spec_path):
-        raise FileNotFoundError(f"Can't find spec.yml file for {module.__name__}.")
-    with open(spec_path, 'r') as f:
-        config = yaml.safe_load(f)
-        schema.validate(config)
-
-
 def load(item: str) -> Callable:
     """
     Load a module through full name or github url.
@@ -137,9 +118,8 @@ def load(item: str) -> Callable:
         if module is None:
             module = _import_path(item, 'radiome_workflow_' + os.path.basename(item))
         logger.info(f'Loaded the workflow {item} via module name.')
-    # TODO more sophisticated validation
-    # if module is not None:
-    #     _validate_spec(module)
+    if module is not None:
+        schema.validate_spec(module)
     if module and hasattr(module, 'create_workflow') and callable(module.create_workflow):
         return module.create_workflow
     raise ValueError(f'Invalid workflow {item}. Cannot find the create_workflow function.')
