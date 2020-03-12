@@ -73,7 +73,7 @@ RUN git clone git://anongit.freedesktop.org/xorg/lib/libXp /tmp/libXp && \
     rm -rf /tmp/libXp
 
 
-COPY required_afni_pkgs.txt /opt/required_afni_pkgs.txt
+COPY data/docker/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 # Install AFNI tools
 RUN libs_path=/usr/lib/x86_64-linux-gnu && \
     if [ -f $libs_path/libgsl.so.19 ]; then \
