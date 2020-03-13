@@ -24,8 +24,13 @@ class ValidationError(Exception):
 
 
 schema = {
-    'radiomeSchemaVersion': {'check_with': _version_check, 'required': True, 'type': 'string', 'allow_unknown': True,
-                             'coerce': str},
+    'radiomeSchemaVersion': {
+        'check_with': _version_check,
+        'required': True,
+        'type': 'string',
+        'allow_unknown': True,
+        'coerce': str,
+    },
     'class': {'allowed': ['workflow', 'pipeline'], 'required': True},
     'name': {'type': 'string', 'required': True},
     'doc': {'type': 'string'},
