@@ -9,7 +9,7 @@ name: anat-preproc
 
 steps:
     -   initial:
-            run: radiome.workflows.initial
+            run: radiome.workflows.preprocessing.initial
             in:
                 non_local_means_filtering: False
                 n4_bias_field_correction: False
@@ -17,7 +17,7 @@ steps:
             # There is only one mock opportunity on the top-level.
 
     -   skullstrip:
-            run: radiome.workflows.afni_skullstrip
+            run: radiome.workflows.preprocessing.afni.skullstrip
             in:
                 mask_vol: False
                 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.

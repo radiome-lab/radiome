@@ -103,5 +103,6 @@ RUN conda update -n base -c defaults conda
 COPY . /code
 WORKDIR /code
 RUN pip install -e '.'
+RUN pip install git+https://github.com/radiome-lab/preprocessing.git
 #RUN chmod +x /code/radiome/cli.py
 #ENTRYPOINT ['/code/radiome/cli.py']
