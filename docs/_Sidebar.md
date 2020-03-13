@@ -1,5 +1,5 @@
 * [Home](https://github.com/radiome-lab/radiome/wiki/Home)
-* [Install](https://github.com/radiome-lab/radiome/wiki/Install)
+* [Getting Started](https://github.com/radiome-lab/radiome/wiki/Getting-Started)
 * [Usage](https://github.com/radiome-lab/radiome/wiki/Usage)
 * [Config](https://github.com/radiome-lab/radiome/wiki/Config)
 * [Resource Pool](https://github.com/radiome-lab/radiome/wiki/ResourcePool)
