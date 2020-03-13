@@ -44,7 +44,7 @@ class CLITestCase(unittest.TestCase):
             res.config_file = os.path.abspath('data')
             cli.build_context(res)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(FileNotFoundError):
             res = copy.copy(self.parsed)
             res.bids_dir = os.path.abspath('./NotFound')
             cli.build_context(res)

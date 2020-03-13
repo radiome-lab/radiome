@@ -7,9 +7,3 @@ name: fake workflow
 inputs:
     fake_input:
         type: boolean
-        doc: a fake inputs.
-
-outputs:
-    image_output:
-        type: Directory
-        doc: fake outputs.
