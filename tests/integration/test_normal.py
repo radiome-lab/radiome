@@ -7,11 +7,10 @@ from unittest import mock
 import boto3
 import s3fs
 from moto import mock_s3
-
-from radiome import cli
-from radiome.resource_pool import ResourceKey
-from radiome.utils.s3 import S3Resource
-from radiome.utils.mocks import mock_nipype
+from radiome.core import cli
+from radiome.core.resource_pool import ResourceKey
+from radiome.core.utils.s3 import S3Resource
+from radiome.core.utils.mocks import mock_nipype
 
 cases = [{
     'inputs': 's3://fcp-indi/data/Projects/ABIDE/RawDataBIDS/Leuven_1',
@@ -75,7 +74,6 @@ class NormalTestCase(unittest.TestCase):
                 for out in outputs:
                     filename = os.path.basename(out)
                     key = ResourceKey(filename.split('.')[0])
-                    print(key)
 
     @mock.patch.dict(os.environ, {'AWS_ACCESS_KEY_ID': 'testing', 'AWS_SECRET_ACCESS_KEY': 'testing'})
     def test_run_local_s3(self):

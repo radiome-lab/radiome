@@ -1,9 +1,9 @@
 from unittest import TestCase
-from radiome.resource_pool import ResourceKey as R, Resource, InvalidResource, ResourcePool
-from radiome.execution import DependencySolver
-from radiome.execution.executor import Execution, DaskExecution, executors
-from radiome.execution.job import PythonJob
-from radiome.utils import Hashable
+from radiome.core.resource_pool import ResourceKey as R, Resource, InvalidResource, ResourcePool
+from radiome.core.execution import DependencySolver
+from radiome.core.execution.executor import Execution, DaskExecution, executors
+from radiome.core.execution.job import PythonJob
+from radiome.core.utils import Hashable
 
 import logging
 

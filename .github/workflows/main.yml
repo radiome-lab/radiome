@@ -14,4 +14,4 @@ jobs:
           ACTION_NAME: puorc
           OWNER: radiome-lab
           REPO_NAME: radiome
-          MD_FOLDER: wiki
+          MD_FOLDER: docs

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-import radiome.cli as cli
+import radiome.core.cli as cli
 
 
 class CLITestCase(unittest.TestCase):
