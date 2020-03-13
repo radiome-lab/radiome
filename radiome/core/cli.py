@@ -32,7 +32,7 @@ def parse_args(args):
     parser.add_argument('--config_file', help='The path for the pipeline config file.', required=True)
     parser.add_argument('--working_dir', help='The local directory where temporary file and logs reside. If not set,'
                                               'the output dir will be used. If the output dir is an S3 bucket,'
-                                              'you must provide a local directory.')
+                                              'you must provide a local path or a temporary directory will be created.')
     parser.add_argument('--participant_label', help='The label of the participant'
                                                     ' that should be analyzed. The label '
                                                     'corresponds to sub-<participant_label> from the BIDS spec '
@@ -70,7 +70,7 @@ def parse_args(args):
     parser.add_argument('--n_cpus', type=int,
                         help='Number of execution '
                              ' resources available for the pipeline')
-    parser.add_argument('--mem_mb', type=float,
+    parser.add_argument('--mem_mb', type=int,
                         help='Amount of RAM available to the pipeline in megabytes.'
                              ' Included for compatibility with BIDS-Apps standard, but mem_gb is preferred')
     parser.add_argument('--mem_gb', type=float,
@@ -86,7 +86,7 @@ def parse_args(args):
     parser.add_argument('--bids_validator_config', help='JSON file specifying configuration of '
                                                         'bids-validator: See https://github.com/INCF/bids-validator '
                                                         'for more info')
-    parser.add_argument('--version', action='version',
+    parser.add_argument('-v', '--version', action='version',
                         version=f'Radiome version: {__version__}, email: {__email__}, author: {__author__}')
     return parser.parse_args(args)
 
@@ -108,9 +108,10 @@ def build_context(args) -> pipeline.Context:
                                             args.aws_output_creds_profile)
     else:
         mapping['working_dir'] = args.working_dir or os.path.join(args.outputs_dir, 'scratch')
-        mapping['outputs_dir'] = args.outputs_dir
+        mapping['outputs_dir'] = os.path.abspath(args.outputs_dir)
         Path(mapping['outputs_dir']).mkdir(parents=True, exist_ok=True)
 
+    mapping['working_dir'] = os.path.abspath(mapping['working_dir'])
     Path(mapping['working_dir']).mkdir(parents=True, exist_ok=True)
     print(f'Working directory: {mapping["working_dir"]}.')
     print(f'Output directory: {mapping["outputs_dir"]}.')
@@ -121,8 +122,8 @@ def build_context(args) -> pipeline.Context:
                                            args.aws_input_creds_profile)
     else:
         if not os.path.exists(args.bids_dir):
-            raise ValueError(f"Invalid inputs dir {args.bids_dir}!")
-        mapping['inputs_dir'] = args.bids_dir
+            raise FileNotFoundError(f"Can't find {args.bids_dir}!")
+        mapping['inputs_dir'] = os.path.abspath(args.bids_dir)
     print(f'Input directory: {mapping["inputs_dir"]}.')
 
     # Participant label
@@ -145,7 +146,7 @@ def build_context(args) -> pipeline.Context:
 
     # Set up maximum memory allowed.
     if args.mem_gb:
-        mapping['memory'] = args.mem_gb * 1024
+        mapping['memory'] = int(args.mem_gb * 1024)
     elif args.mem_mb:
         mapping['memory'] = args.mem_mb
     else:
