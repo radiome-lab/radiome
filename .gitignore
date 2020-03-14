@@ -104,3 +104,5 @@ ENV/
 
 # IDE
 .idea/
+
+.DS_Store
