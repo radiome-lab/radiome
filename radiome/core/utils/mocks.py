@@ -3,11 +3,14 @@ import importlib
 import logging
 import os
 import sys
+import tempfile
 import types
 from pathlib import Path
 
+import yaml
 from nipype.interfaces.base import File
 
+from radiome.core import pipeline, cli
 from radiome.core.execution import Job, ComputedResource
 from radiome.core.resource_pool import Resource, ResourcePool
 
@@ -105,3 +108,40 @@ class mock_nipype:
     def __exit__(self, exc_type, exc_val, exc_tb):
         del sys.modules[self.name]
         sys.modules[self.name] = importlib.import_module(self.name)
+
+
+class Namespace(types.SimpleNamespace):
+    def __getattr__(self, item):
+        if item in self.__dict__:
+            return self.__dict__[item]
+        else:
+            return None
+
+
+class WorkflowDriver:
+    def __init__(self, module_name, inputs_dir, output_dir=None, working_dir=None, config=None,
+                 participant_label=None,
+                 aws_input_creds_path=None,
+                 aws_input_creds_profile=None):
+        args = Namespace(bids_dir=inputs_dir, outputs_dir=output_dir or tempfile.mkdtemp(),
+                         working_dir=working_dir,
+                         participant_label=participant_label,
+                         aws_input_creds_path=aws_input_creds_path,
+                         aws_input_creds_profile=aws_input_creds_profile)
+        with tempfile.NamedTemporaryFile(suffix='.yml', mode='a+', delete=False) as tf:
+            yaml.dump({'radiomeSchemaVersion': 1.0,
+                       'class': 'pipeline',
+                       'name': 'test',
+                       'steps': [
+                           {'step1': {
+                               'run': module_name,
+                               'in': config
+                           }}
+                       ]}, tf)
+            tf.seek(0)
+            args.config_file = tf.name
+
+        self._args = args
+
+    def run(self):
+        return pipeline.build(cli.build_context(self._args))

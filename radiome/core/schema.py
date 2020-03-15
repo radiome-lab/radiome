@@ -47,7 +47,7 @@ schema = {
               'valuesrules': {
                   'type': 'dict',
                   'schema': {'run': {'type': 'string', 'required': True},
-                             'in': {'type': 'dict', 'required': True}}
+                             'in': {'type': 'dict', 'required': False, 'nullable': True}}
               }}
 }
 
