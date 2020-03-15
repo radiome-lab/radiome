@@ -11,6 +11,7 @@ from pathlib import Path
 import psutil
 import yaml
 
+from radiome.core.execution import context
 from radiome.core import __version__, __author__, __email__
 from radiome.core import pipeline
 from radiome.core.utils.s3 import S3Resource
@@ -91,7 +92,7 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
-def build_context(args) -> pipeline.Context:
+def build_context(args) -> context.Context:
     mapping = {}
     print("Building the pipeline....")
     # Load config.
@@ -174,9 +175,9 @@ def build_context(args) -> pipeline.Context:
             print('BIDS Validation passed. Continue')
 
     # flags
-    mapping['save_working_dir'] = args.save_working_dir
+    mapping['save_working_dir'] = bool(args.save_working_dir)
 
-    return pipeline.Context(**mapping)
+    return context.Context(**mapping)
 
 
 def print_info() -> None:
@@ -191,10 +192,10 @@ def main(args=None):
     params = parse_args(args)
     try:
         print_info()
-        context = build_context(params)
-        pipeline.build(context)
+        ctx = build_context(params)
+        pipeline.build(ctx)
     except Exception as e:
-        print(f'{type(e)}:{e}', file=sys.stderr)
+        print(f'{type(e).__name__}:{e}', file=sys.stderr)
         return 1
     else:
         return 0

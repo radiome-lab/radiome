@@ -2,12 +2,9 @@ import functools
 import logging
 import os
 import shutil
-from dataclasses import dataclass
-from pathlib import Path
-from typing import List, Union, Dict
 
 from radiome.core import schema
-from radiome.core.execution import DependencySolver, loader
+from radiome.core.execution import DependencySolver, loader, Context
 from radiome.core.execution.executor import DaskExecution
 from radiome.core.resource_pool import ResourcePool, Resource
 from radiome.core.utils.s3 import S3Resource
@@ -15,21 +12,9 @@ from radiome.core.utils.s3 import S3Resource
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
-class Context:
-    working_dir: Union[str, os.PathLike]
-    inputs_dir: Union[str, os.PathLike, S3Resource]
-    outputs_dir: Union[str, os.PathLike, S3Resource]
-    participant_label: List
-    n_cpus: int
-    memory: int
-    save_working_dir: bool
-    pipeline_config: Dict
-
-
-def load_resource(resource_pool: ResourcePool, context: Context):
-    inputs_dir = context.inputs_dir
-    participant_label = context.participant_label
+def load_resource(resource_pool: ResourcePool, ctx: Context):
+    inputs_dir = ctx.inputs_dir
+    participant_label = ctx.participant_label
     is_s3 = isinstance(inputs_dir, S3Resource)
     walk = inputs_dir.walk if is_s3 else functools.partial(os.walk, inputs_dir, topdown=False)
     for root, dirs, files in walk():
@@ -44,24 +29,16 @@ def load_resource(resource_pool: ResourcePool, context: Context):
                     logger.info(f'Added {filename} to the resource pool.')
 
 
-def build(context: Context, **kwargs):
+def build(context: Context, **kwargs) -> ResourcePool:
     rp = ResourcePool()
     load_resource(rp, context)
     for entry, params in schema.steps(context.pipeline_config):
         loader.load(entry)(params, rp, context)
-    output_dir = os.path.join(context.working_dir, 'outputs') if isinstance(context.outputs_dir,
-                                                                            S3Resource) else context.outputs_dir
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
     print('Executing pipeline.......')
-    DependencySolver(rp, work_dir=context.working_dir, output_dir=output_dir).execute(executor=DaskExecution())
-    if isinstance(context.outputs_dir, S3Resource):
-        try:
-            context.outputs_dir.upload(output_dir)
-        except Exception:
-            raise
-        else:
-            if not context.save_working_dir:
-                shutil.rmtree(context.working_dir)
-    else:
-        if not context.save_working_dir:
-            shutil.rmtree(context.working_dir)
+    res_rp = DependencySolver(rp, context).execute(executor=DaskExecution())
+    print('Execution Completed.')
+
+    if not context.save_working_dir:
+        shutil.rmtree(context.working_dir)
+    return res_rp

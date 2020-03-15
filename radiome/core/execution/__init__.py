@@ -2,15 +2,18 @@ import logging
 import os
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 import networkx as nx
 
-from radiome.core.resource_pool import InvalidResource, ResourcePool
+from radiome.core.resource_pool import InvalidResource, ResourcePool, Resource
 from radiome.core.utils import Hashable
+from .context import Context
 from ..utils import bids
 from .executor import Execution
 from .job import ComputedResource, Job
 from .utils import cwd
+from ..utils.s3 import S3Resource
 
 logger = logging.getLogger('radiome.execution.state')
 
@@ -91,10 +94,13 @@ class State(Hashable):
 
 class DependencySolver:
 
-    def __init__(self, resource_pool, output_dir='.', work_dir='.'):
+    def __init__(self, resource_pool, ctx: Context = None):
         self._resource_pool = resource_pool
-        self._work_dir = os.path.abspath(work_dir)
-        self._output_dir = os.path.abspath(output_dir)
+        if ctx is None:
+            ctx = SimpleNamespace()
+            ctx.outputs_dir = os.path.abspath('.')
+            ctx.working_dir = os.path.abspath('.')
+        self._ctx = ctx
 
     @property
     def graph(self):
@@ -113,13 +119,13 @@ class DependencySolver:
             if resource_id in G:
                 references |= G.nodes[resource_id]['references']
 
-            G.add_node(resource_id, job=State(self._work_dir, resource), references=references)
+            G.add_node(resource_id, job=State(self._ctx.working_dir, resource), references=references)
 
             for field, dep in resource.dependencies().items():
                 dep_id = id(dep)
 
                 if dep_id not in G:
-                    G.add_node(dep_id, job=State(self._work_dir, dep))
+                    G.add_node(dep_id, job=State(self._ctx.working_dir, dep))
                 G.add_edge(dep_id, resource_id, field=field)
 
                 if dep_id not in instances:
@@ -134,7 +140,7 @@ class DependencySolver:
             for field, dep in resource.dependencies().items():
                 dep_id = id(dep)
                 if dep_id not in G:
-                    G.add_node(dep_id, job=State(self._work_dir, dep))
+                    G.add_node(dep_id, job=State(self._ctx.working_dir, dep))
                 G.add_edge(dep_id, resource_id, field=field)
 
                 if dep_id not in instances:
@@ -157,18 +163,26 @@ class DependencySolver:
         return G
 
     def execute(self, executor=None):
-
         G = self.graph
 
         if not executor:
             executor = Execution()
 
         logger.info(f'Executing with {executor.__class__.__name__}')
-
         results = executor.execute(graph=G)
+        return self._gather(results)
 
+    def _gather(self, results):
         logger.info('Gathering resources')
         resource_pool = ResourcePool()
+
+        is_s3_outputs = isinstance(self._ctx.outputs_dir, S3Resource)
+        if is_s3_outputs:
+            local_output_dir = os.path.join(self._ctx.working_dir, 'outputs')
+        else:
+            local_output_dir = self._ctx.outputs_dir
+        Path(local_output_dir).mkdir(parents=True, exist_ok=True)
+
         for _, attr in self.graph.nodes.items():
             job = attr['job']
             if not isinstance(job.resource, ComputedResource):
@@ -190,13 +204,21 @@ class DependencySolver:
                     logger.info(f'Setting {result} in {key}')
                     ext = os.path.basename(result).split('.', 1)[-1]
                     pipeline_name = job._resource.output_name
-                    destination = os.path.join(self._output_dir, bids.derivative_location(pipeline_name, key))
-                    if not os.path.exists(destination):
-                        os.makedirs(destination)
+                    bids_dir = bids.derivative_location(pipeline_name, key)
+
+                    destination = os.path.join(local_output_dir, bids_dir)
+                    Path(destination).mkdir(parents=True, exist_ok=True)
+
                     output = os.path.join(destination, f'{key}.{ext}')
                     logger.info(f'Copying file from "{result}" to "{output}"')
                     shutil.copyfile(result, output)
-                    result = output
+
+                    bids_file = os.path.join(bids_dir, f'{key}.{ext}')
+                    result = self._ctx.outputs_dir / bids_file if is_s3_outputs else Resource(output)
                 resource_pool[key] = result
+
+        if is_s3_outputs:
+            logger.info("Uploading result to the output bucket.....")
+            self._ctx.outputs_dir.upload(local_output_dir)
 
         return resource_pool

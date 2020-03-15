@@ -638,6 +638,9 @@ class ResourcePool:
                 self._pool_by_tag[flag] = {}
             self._pool_by_tag[flag][resource_key] = resource
 
+    def __str__(self):
+        return str(self._pool)
+
     def extract(self, *resources: Union[ResourceKey, str]):
 
         extracted_resources = {}
