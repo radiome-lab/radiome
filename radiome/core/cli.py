@@ -81,6 +81,8 @@ def parse_args(args):
                         help='Save the contents of the working directory.')
     parser.add_argument('--disable_file_logging', action='store_true',
                         help='Disable file logging, this is useful for clusters that have disabled file locking.')
+    parser.add_argument('--diagnostics', action='store_true',
+                        help='Enable diagnostics dashboard of execution engine.')
     parser.add_argument('--enable_bids_validator',
                         help='skips bids validation',
                         action='store_true')
@@ -176,6 +178,7 @@ def build_context(args) -> context.Context:
 
     # flags
     mapping['save_working_dir'] = bool(args.save_working_dir)
+    mapping['diagnostics'] = bool(args.diagnostics)
 
     return context.Context(**mapping)
 

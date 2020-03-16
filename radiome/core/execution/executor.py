@@ -5,6 +5,7 @@ import networkx as nx
 from distributed import (Client, LocalCluster, get_client,
                          get_worker)
 from distributed.protocol.serialize import register_serialization_family
+from radiome.core.execution import Context
 
 from radiome.core.execution.job import Job
 
@@ -76,7 +77,7 @@ class Execution:
 class DaskExecution(Execution):
     _self_client = False
 
-    def __init__(self, client=None):
+    def __init__(self, client=None, ctx: Context = None):
         super().__init__()
 
         if not client:
@@ -86,7 +87,7 @@ class DaskExecution(Execution):
                 n_workers=cpus,
                 threads_per_worker=2,
                 processes=True,
-                dashboard_address=None
+                dashboard_address=':8787' if ctx and ctx.diagnostics else None
             )
             client = Client(
                 cluster,

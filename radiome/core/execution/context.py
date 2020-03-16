@@ -15,3 +15,4 @@ class Context:
     memory: int
     save_working_dir: bool
     pipeline_config: Dict
+    diagnostics: bool
