@@ -119,7 +119,7 @@ class Namespace(types.SimpleNamespace):
 
 
 class WorkflowDriver:
-    def __init__(self, module_name, inputs_dir, output_dir=None, working_dir=None, config=None,
+    def __init__(self, module_path, inputs_dir, output_dir=None, working_dir=None, config=None,
                  participant_label=None,
                  aws_input_creds_path=None,
                  aws_input_creds_profile=None):
@@ -134,7 +134,7 @@ class WorkflowDriver:
                        'name': 'test',
                        'steps': [
                            {'step1': {
-                               'run': module_name,
+                               'run': module_path,
                                'in': config
                            }}
                        ]}, tf)
