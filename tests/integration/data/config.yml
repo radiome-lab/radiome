@@ -17,7 +17,7 @@ steps:
             # There is only one mock opportunity on the top-level.
 
     -   skullstrip:
-            run: radiome.workflows.preprocessing.afni.skullstrip
+            run: radiome.workflows.preprocessing.skullstrip.afni
             in:
                 mask_vol: False
                 # Set the threshold value controlling the brain vs non-brain voxels. Default is 0.6.

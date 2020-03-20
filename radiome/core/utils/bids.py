@@ -9,6 +9,11 @@ def derivative_location(pipeline_name: str, key: ResourceKey) -> str:
         path = os.path.join(path, f'sub-{key.entities["sub"]}')
     if 'ses' in key.entities:
         path = os.path.join(path, f'ses-{key.entities["ses"]}')
-    category = 'anat' if key.suffix == 'T1w' else 'func'
+    if key.suffix == 'T1w':
+        category = 'anat'
+    elif key.suffix == 'mask':
+        category = 'mask'
+    else:
+        category = 'func'
     path = os.path.join(path, category)
     return path

@@ -97,7 +97,7 @@ class mock_nipype:
     Patch the nipype jobs with mocks at runtime, then recover it when exiting.
     """
 
-    name = 'radiome.core.execution.nipype'
+    name = 'radiome.core.jobs'
 
     def __enter__(self):
         if self.name in sys.modules:

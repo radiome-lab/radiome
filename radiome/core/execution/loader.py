@@ -100,8 +100,9 @@ def _set_bids_outputs(func: Callable, name: str):
     @wraps(func)
     def create_workflow(config, rp, ctx):
         ComputedResource._bids_name = name
-        func(config, rp, ctx)
+        res = func(config, rp, ctx)
         ComputedResource._bids_name = None
+        return res
 
     return create_workflow
 

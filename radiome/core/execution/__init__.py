@@ -83,12 +83,9 @@ class State(Hashable):
             'storage': 0,
         }
 
-    def __getattr__(self, attr):
-        if attr == 'resource':
-            return self._resource
-        if attr in self.__dict__:
-            return self.__dict__[attr]
-        raise AttributeError(f'Invalid attr: {attr}')
+    @property
+    def resource(self):
+        return self._resource
 
 
 class DependencySolver:
