@@ -69,9 +69,9 @@ def validate_inputs(current_file, config: dict):
         raise ValidationError(f"{','.join(validator.errors)}")
 
 
-def validate_spec(module: ModuleType) -> None:
+def get_name(module: ModuleType) -> str:
     """
-    Check that a module has spec.yml file and the spec.yaml is valid.
+    Check that a module has spec.yml file and the spec.yaml is valid, then return the name in spec.yml.
 
     Args:
         module: The module that has been imported.
@@ -86,6 +86,7 @@ def validate_spec(module: ModuleType) -> None:
     with open(spec_path, 'r') as f:
         config = yaml.safe_load(f)
         validate(config)
+    return config['name']
 
 
 def steps(config: dict) -> Iterator[Tuple[str, str]]:

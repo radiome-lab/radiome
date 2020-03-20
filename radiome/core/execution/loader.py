@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import tempfile
+from functools import wraps
 from types import ModuleType
 from typing import Callable, Optional
 from urllib.parse import urlparse
@@ -11,6 +12,7 @@ from urllib.parse import urlparse
 from git.repo.base import Repo
 
 from radiome.core import schema
+from radiome.core.jobs import ComputedResource
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +96,16 @@ def _resolve_git(url: str, destination: str) -> str:
     return destination
 
 
+def _set_bids_outputs(func: Callable, name: str):
+    @wraps(func)
+    def create_workflow(config, rp, ctx):
+        ComputedResource._bids_name = name
+        func(config, rp, ctx)
+        ComputedResource._bids_name = None
+
+    return create_workflow
+
+
 def load(item: str) -> Callable:
     """
     Load a module through full name or github url.
@@ -116,9 +128,9 @@ def load(item: str) -> Callable:
         module = _import_name(item)
         if module is None:
             module = _import_path(item, 'radiome_workflow_' + os.path.basename(item))
-        logger.info(f'Loaded the workflow {item} via module name.')
-    if module is not None:
-        schema.validate_spec(module)
+            logger.info(f'Loaded the workflow {item} via path.')
+        else:
+            logger.info(f'Loaded the workflow {item} via module name.')
     if module and hasattr(module, 'create_workflow') and callable(module.create_workflow):
-        return module.create_workflow
+        return _set_bids_outputs(module.create_workflow, schema.get_name(module))
     raise ValueError(f'Invalid workflow {item}. Cannot find the create_workflow function.')

@@ -9,8 +9,7 @@ import networkx as nx
 from radiome.core.context import Context
 from radiome.core.jobs import ComputedResource, Job
 from radiome.core.resource_pool import InvalidResource, ResourcePool, Resource
-from radiome.core.utils import Hashable
-from ..utils import bids
+from radiome.core.utils import Hashable, bids
 from radiome.core.utils.path import cwd
 from radiome.core.utils.s3 import S3Resource
 from .executor import Execution
@@ -203,8 +202,8 @@ class DependencySolver:
                 if isinstance(result, Path):
                     logger.info(f'Setting {result} in {key}')
                     ext = os.path.basename(result).split('.', 1)[-1]
-                    pipeline_name = job._resource.output_name
-                    bids_dir = bids.derivative_location(pipeline_name, key)
+                    bids_name = job.resource.bids_name
+                    bids_dir = bids.derivative_location(bids_name, key)
 
                     destination = os.path.join(local_output_dir, bids_dir)
                     Path(destination).mkdir(parents=True, exist_ok=True)

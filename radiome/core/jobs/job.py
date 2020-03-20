@@ -157,13 +157,14 @@ class PythonJob(Job):
 
 
 class ComputedResource(Job, Resource):
+    _bids_name = None
 
     def __init__(self, job, field=None):
         self._job = job
         self._field = field
         self._content = (job, field)
         self._inputs = {'state': job}
-        self._output_name = None
+        self._bids_name = self._bids_name or 'unnamed'
 
         self._estimates = {
             'cpu': 1,
@@ -204,13 +205,9 @@ class ComputedResource(Job, Resource):
         self._content = (self._job, self._field)
         self._inputs = {'state': self._job}
 
-    def __mod__(self, name: str) -> 'ComputedResource':
-        self._output_name = name
-        return self
-
     @property
-    def output_name(self):
-        return self._output_name
+    def bids_name(self):
+        return self._bids_name
 
 
 class NipypeJob(Job):
