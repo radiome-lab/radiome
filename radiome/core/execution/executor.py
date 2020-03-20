@@ -2,12 +2,11 @@ import logging
 
 import cloudpickle
 import networkx as nx
-from distributed import (Client, LocalCluster, get_client,
-                         get_worker)
+from distributed import Client, LocalCluster, get_client, get_worker
 from distributed.protocol.serialize import register_serialization_family
-from radiome.core.execution import Context
 
-from radiome.core.execution.job import Job
+from radiome.core.execution import Context
+from radiome.core.execution import Job
 
 logger = logging.getLogger('radiome.execution.executor')
 logger_lock = logger.getChild('lock')

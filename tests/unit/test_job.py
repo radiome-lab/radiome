@@ -4,7 +4,7 @@ import networkx
 from nipype.interfaces import base as nib
 
 from radiome.core.execution import DependencySolver
-from radiome.core.execution.nipype import NipypeJob
+from radiome.core.jobs import NipypeJob
 from radiome.core.resource_pool import ResourceKey, ResourcePool
 
 

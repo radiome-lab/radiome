@@ -10,15 +10,15 @@ from pathlib import Path
 import yaml
 from nipype.interfaces.base import File
 
-from radiome.core import pipeline, cli
-from radiome.core.execution import Job, ComputedResource
+from radiome.core import cli
+from radiome.core.execution import Job, ComputedResource, pipeline
 from radiome.core.resource_pool import Resource, ResourcePool
 
 logger = logging.getLogger(__name__)
 
 
 class NipypeJob(Job):
-    """ Nipype job mock for testing.
+    """ Nipype jobs mock for testing.
 
     Mock that emulates the behavior and APIs of NipypeJob, but do not execute the commandline of nipype jobs.
     It will create fake outputs based on the outputs traits.
@@ -92,9 +92,9 @@ class NipypeJob(Job):
 
 
 class mock_nipype:
-    """ Context manager which replaces Nipype job with mock at runtime.
+    """ Context manager which replaces Nipype jobs with mock at runtime.
 
-    Patch the nipype job with mocks at runtime, then recover it when exiting.
+    Patch the nipype jobs with mocks at runtime, then recover it when exiting.
     """
 
     name = 'radiome.core.execution.nipype'

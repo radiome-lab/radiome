@@ -8,7 +8,6 @@ from types import ModuleType
 from typing import Callable, Optional
 from urllib.parse import urlparse
 
-import yaml
 from git.repo.base import Repo
 
 from radiome.core import schema

@@ -11,9 +11,9 @@ from pathlib import Path
 import psutil
 import yaml
 
-from radiome.core.execution import context
 from radiome.core import __version__, __author__, __email__
-from radiome.core import pipeline
+from radiome.core import context
+from radiome.core.execution import pipeline
 from radiome.core.utils.s3 import S3Resource
 
 

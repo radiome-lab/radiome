@@ -1,5 +1,6 @@
 import hashlib
 
+
 def _nested_repr(obj):
     if isinstance(obj, dict):
         return repr([
@@ -26,10 +27,9 @@ def deterministic_hash(obj):
 
 
 class Hashable:
-
     _hash = None
 
-    def __hashcontent__(self):  
+    def __hashcontent__(self):
         raise NotImplementedError
 
     def __longhash__(self):

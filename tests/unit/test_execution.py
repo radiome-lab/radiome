@@ -2,7 +2,7 @@ from unittest import TestCase
 from radiome.core.resource_pool import ResourceKey as R, Resource, InvalidResource, ResourcePool
 from radiome.core.execution import DependencySolver
 from radiome.core.execution.executor import Execution, DaskExecution, executors
-from radiome.core.execution.job import PythonJob
+from radiome.core.jobs import PythonJob
 from radiome.core.utils import Hashable
 
 import logging
@@ -197,7 +197,7 @@ class TestExecution(TestCase):
             raise Exception(message)
 
         erred = PythonJob(function=err, reference='erring_job')
-        erred.message = Resource('This job has erred')
+        erred.message = Resource('This jobs has erred')
         erred.path = file_basename.dirname
         rp[R('T1w', label='err')] = erred.no_return
 
