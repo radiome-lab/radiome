@@ -1,5 +1,7 @@
+import os
 
-class StateProfiler():
+
+class StateProfiler:
 
     def __init__(self, state):
         self._state = state
@@ -36,3 +38,7 @@ class StateProfiler():
     def compute(self, job, **kwargs):
         self._count['compute'][job.__str__()] = self._count['compute'].get(job.__str__(), 0) + 1
         return self._state.compute(job, **kwargs)
+
+
+def data_path(curr_file, dest):
+    return os.path.join(os.path.dirname(os.path.abspath(curr_file)), 'data', dest)

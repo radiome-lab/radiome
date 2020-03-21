@@ -5,7 +5,7 @@ import shutil
 
 from radiome.core import schema
 from radiome.core.execution import DependencySolver, loader, Context
-from radiome.core.execution.executor import DaskExecution
+from radiome.core.execution.executor import DaskExecution, Execution
 from radiome.core.resource_pool import ResourcePool, Resource
 from radiome.core.utils.s3 import S3Resource
 
@@ -29,14 +29,17 @@ def load_resource(resource_pool: ResourcePool, ctx: Context):
                     logger.info(f'Added {filename} to the resource pool.')
 
 
-def build(context: Context, **kwargs) -> ResourcePool:
+def build(context: Context, disable_concurrency=False, **kwargs) -> ResourcePool:
     rp = ResourcePool()
     load_resource(rp, context)
     for entry, params in schema.steps(context.pipeline_config):
         loader.load(entry)(params, rp, context)
 
     print('Executing pipeline.......')
-    res_rp = DependencySolver(rp, context).execute(executor=DaskExecution(ctx=context))
+    if disable_concurrency:
+        res_rp = DependencySolver(rp, context).execute(executor=Execution())
+    else:
+        res_rp = DependencySolver(rp, context).execute(executor=DaskExecution(ctx=context))
     print('Execution Completed.')
 
     if not context.save_working_dir:

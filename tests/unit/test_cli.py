@@ -18,9 +18,10 @@ class CLITestCase(unittest.TestCase):
                      '--working_dir', self.temp_working_dir,
                      '--participant_label', '0050683', '0050686',
                      '--n_cpus', '2',
-                     '--mem_gb', '4',
+                     '--mem_gb', '4.5',
                      '--save_working_dir',
-                     '--disable_file_logging'
+                     '--disable_file_logging',
+                     '--diagnostics'
                      ]
         self.parsed = cli.parse_args(self.args)
 
@@ -29,13 +30,14 @@ class CLITestCase(unittest.TestCase):
         self.assertEqual(res.bids_dir, 's3://fcp-indi/data/Projects/ABIDE/RawDataBIDS/Leuven_1')
         self.assertEqual(res.config_file, self.config_file_path)
         self.assertTrue(res.disable_file_logging)
-        self.assertEqual(res.mem_gb, 4.0)
+        self.assertEqual(res.mem_gb, 4.5)
         self.assertEqual(res.n_cpus, 2)
         self.assertEqual(res.outputs_dir, self.temp_out_dir)
         self.assertListEqual(res.participant_label, ['0050683', '0050686'])
         self.assertTrue(res.save_working_dir)
         self.assertFalse(res.enable_bids_validator)
         self.assertEqual(res.working_dir, self.temp_working_dir)
+        self.assertTrue(res.diagnostics)
 
     def test_build_context(self):
         # mutation test
@@ -74,7 +76,7 @@ class CLITestCase(unittest.TestCase):
         ctx = cli.build_context(self.parsed)
         self.assertEqual(ctx.working_dir, self.temp_working_dir)
         self.assertListEqual(ctx.participant_label, res.participant_label)
-        self.assertEqual(ctx.memory, 4.0 * 1024)
+        self.assertEqual(ctx.memory, 4.5 * 1024)
         self.assertEqual(ctx.n_cpus, res.n_cpus)
 
     @mock.patch.dict(os.environ, {'PATH': ''})

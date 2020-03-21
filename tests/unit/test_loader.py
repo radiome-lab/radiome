@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 from radiome.core.execution import loader
+from radiome.core.resource_pool import ResourcePool
 
 
 class LoaderTestCase(unittest.TestCase):
@@ -21,7 +22,7 @@ class LoaderTestCase(unittest.TestCase):
 
     def test_load(self):
         module_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/fake_workflow')
-        self.assertEqual(loader.load(module_path)(None, None, None), 'test')
+        self.assertEqual(loader.load(module_path)({'msg': 'mocks'}, ResourcePool(), None), 'test')
 
 
 if __name__ == '__main__':

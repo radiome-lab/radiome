@@ -64,9 +64,7 @@ class TestExecution(TestCase):
 
     def test_initial(self):
 
-        for strat, srp in self.rp[[
-            R('T1w'),
-        ]]:
+        for strat, srp in self.rp[['T1w']]:
             anatomical_image = srp[R('T1w')]
 
             file_basename = PythonJob(function=basename)

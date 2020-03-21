@@ -92,6 +92,7 @@ class NipypeJob(Job):
 
 
 class mock_nipype:
+    # TODO: need to handle the case when NipypeJob has been imported.
     """ Context manager which replaces Nipype jobs with mock at runtime.
 
     Patch the nipype jobs with mocks at runtime, then recover it when exiting.
@@ -119,29 +120,29 @@ class Namespace(types.SimpleNamespace):
 
 
 class WorkflowDriver:
-    def __init__(self, module_path, inputs_dir, output_dir=None, working_dir=None, config=None,
+    def __init__(self, module_path, inputs_dir, output_dir=None, working_dir=None,
                  participant_label=None,
                  aws_input_creds_path=None,
                  aws_input_creds_profile=None):
-        args = Namespace(bids_dir=inputs_dir, outputs_dir=output_dir or tempfile.mkdtemp(),
-                         working_dir=working_dir,
-                         participant_label=participant_label,
-                         aws_input_creds_path=aws_input_creds_path,
-                         aws_input_creds_profile=aws_input_creds_profile)
-        with tempfile.NamedTemporaryFile(suffix='.yml', mode='a+', delete=False) as tf:
+        self._args = Namespace(bids_dir=inputs_dir, outputs_dir=output_dir or tempfile.mkdtemp(),
+                               working_dir=working_dir,
+                               participant_label=participant_label,
+                               aws_input_creds_path=aws_input_creds_path,
+                               aws_input_creds_profile=aws_input_creds_profile)
+        self._module = module_path
+
+    def run(self, config):
+        with tempfile.NamedTemporaryFile(suffix='.yml', mode='a+') as tf:
             yaml.dump({'radiomeSchemaVersion': 1.0,
                        'class': 'pipeline',
                        'name': 'test',
                        'steps': [
                            {'step1': {
-                               'run': module_path,
+                               'run': self._module,
                                'in': config
                            }}
                        ]}, tf)
             tf.seek(0)
-            args.config_file = tf.name
-
-        self._args = args
-
-    def run(self):
-        return pipeline.build(cli.build_context(self._args))
+            self._args.config_file = tf.name
+            ctx = cli.build_context(self._args)
+        return pipeline.build(ctx)

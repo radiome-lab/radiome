@@ -1,5 +1,6 @@
 import glob
 import os
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -8,6 +9,8 @@ import boto3
 import s3fs
 from moto import mock_s3
 from radiome.core import cli
+from radiome.core.cli import parse_args, build_context
+from radiome.core.execution import pipeline
 from radiome.core.resource_pool import ResourceKey
 from radiome.core.utils.s3 import S3Resource
 from radiome.core.utils.mocks import mock_nipype
@@ -105,6 +108,18 @@ class NormalTestCase(unittest.TestCase):
             self.assertTrue(s3.exists(f'{bucket_path}/derivatives/initial/sub-0050682/anat'))
 
     def test_misc_params(self):
+
+        def exec_without_concurrency(args):
+            params = parse_args(args)
+            try:
+                ctx = build_context(params)
+                pipeline.build(ctx, disable_concurrency=True)
+            except Exception as e:
+                print(f'{type(e).__name__}:{e}', file=sys.stderr)
+                return 1
+            else:
+                return 0
+
         with mock_nipype():
             data = cases[1]
             args = [data['inputs'],
@@ -112,8 +127,9 @@ class NormalTestCase(unittest.TestCase):
                     '--config', data['config'],
                     '--disable_file_logging'
                     ]
-            self.assertEqual(cli.main(args), 0)
-            self.assertFalse(os.path.exists(os.path.join(data['outputs'], 'scratch')))
+            for func in [cli.main, exec_without_concurrency]:
+                self.assertEqual(func(args), 0)
+                self.assertFalse(os.path.exists(os.path.join(data['outputs'], 'scratch')))
 
 
 if __name__ == '__main__':
