@@ -50,7 +50,7 @@ class S3Resource(Resource, os.PathLike):
         self._aws_cred_profile = aws_cred_profile
         self._cached = None
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         """
         Download files or directories to the working dir. Cache will be used if called multiple times.
 

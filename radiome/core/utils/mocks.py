@@ -128,7 +128,8 @@ class WorkflowDriver:
                                working_dir=working_dir,
                                participant_label=participant_label,
                                aws_input_creds_path=aws_input_creds_path,
-                               aws_input_creds_profile=aws_input_creds_profile)
+                               aws_input_creds_profile=aws_input_creds_profile,
+                               disable_file_logging=True)
         self._module = module_path
 
     def run(self, config):

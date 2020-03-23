@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 
 import cloudpickle
-from nipype.interfaces.base import File, BaseInterface
+from nipype.interfaces.base import File, BaseInterface, Undefined
 
 from radiome.core.resource_pool import Resource, ResourcePool
 from radiome.core.utils import Hashable
@@ -256,11 +256,10 @@ class NipypeJob(Job):
             setattr(iface.inputs, k, v)
 
         res = iface.run()  # add error handling
-
         return {
             k: (
                 Path(v)
-                if isinstance(res.outputs.trait(k).trait_type, File)
+                if isinstance(res.outputs.trait(k).trait_type, File) and v is not Undefined
                 else v
             )
             for k, v in res.outputs.get().items()

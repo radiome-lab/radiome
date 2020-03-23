@@ -1,4 +1,5 @@
 import os
+import sys
 from types import ModuleType
 from typing import Tuple, Iterator
 
@@ -38,8 +39,10 @@ schema = {
                'dependencies': {'class': ['workflow']},
                'valuesrules': {
                    'type': 'dict',
+                   'allow_unknown': True,
                    'schema': {
                        'type': {'type': 'string', 'required': True},
+                       'doc': {'type': 'string', 'rename': 'meta'}
                    }
                }},
     'steps': {'type': 'list',
@@ -58,15 +61,18 @@ def validate(config: dict) -> None:
         raise ValidationError(f"{','.join(validator.errors)}")
 
 
-def validate_inputs(current_file, config: dict):
+def normalize_inputs(current_file, config: dict):
     spec_path = os.path.join(os.path.dirname(current_file), 'spec.yml')
     if not os.path.isfile(spec_path):
         raise FileNotFoundError(f"Can't find spec.yml file for {current_file}.")
     with open(spec_path, 'r') as f:
         spec_schema = yaml.safe_load(f)
-    validator = Validator()
-    if not validator.validate(config, spec_schema['inputs']):
+    spec = Validator(schema).normalized(spec_schema)['inputs']
+    validator = Validator(spec)
+    config = validator.normalized(config)
+    if not validator.validate(config):
         raise ValidationError(f"{','.join(validator.errors)}")
+    return config
 
 
 def get_name(module: ModuleType) -> str:
