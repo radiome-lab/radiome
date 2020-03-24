@@ -1,5 +1,4 @@
 import os
-import sys
 from types import ModuleType
 from typing import Tuple, Iterator
 
@@ -76,16 +75,6 @@ def normalize_inputs(current_file, config: dict):
 
 
 def get_name(module: ModuleType) -> str:
-    """
-    Check that a module has spec.yml file and the spec.yaml is valid, then return the name in spec.yml.
-
-    Args:
-        module: The module that has been imported.
-
-    Raises:
-        FileNotFoundError: The spec.yml is not found.
-        ValidationError: Errors in validating spec.yml file.
-    """
     spec_path = os.path.join(os.path.dirname(module.__file__), 'spec.yml')
     if not os.path.isfile(spec_path):
         raise FileNotFoundError(f"Can't find spec.yml file for {module.__name__}.")
