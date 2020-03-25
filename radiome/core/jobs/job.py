@@ -130,9 +130,22 @@ class FakeJob(Job):
 
 
 class PythonJob(Job):
+    """  Radiome job for Python functions.
+
+    This job is to set up Python function in the steps of a workflow. Inputs of function should be
+    set using attributes. Python functions must return a dict, which is mapping from names to values.
+
+    """
     _function = None
 
     def __init__(self, function, reference=None):
+        """
+        Create a Python job.
+
+        Args:
+            function: Python function be to executed.
+            reference: Name for the job.
+        """
         super().__init__(reference)
         self._function = function
 
@@ -157,6 +170,12 @@ class PythonJob(Job):
 
 
 class ComputedResource(Job, Resource):
+    """  Represents the future result from a job, but not the true result.
+
+    ComputedResource stores information that is needed to compute the result, but not the result itself.
+    It can be used as inputs of other jobs and thus create a connection between jobs.
+
+    """
     _bids_name = None
 
     def __init__(self, job, field=None):
@@ -211,6 +230,12 @@ class ComputedResource(Job, Resource):
 
 
 class NipypeJob(Job):
+    """  Radiome job for nipype interfaces,
+
+    NipypeJob is a uniform wrapper for all nipype interfaces such that nipype interfaces
+    can receive results from or become inputs of other jobs.
+
+    """
 
     def __init__(self, interface: BaseInterface, reference=None):
         super().__init__(reference=reference)

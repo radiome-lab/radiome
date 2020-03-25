@@ -34,11 +34,11 @@ Note that some workflows may require specific software packages (e.g. AFNI, ANTs
 
 ### Create Pipeline Config
 
-You need to create a config file for your pipeline. Please refer to [Config Page](https://github.com/radiome-lab/radiome/wiki/Config) for more information.
+You need a config file to invoke the workflows with required parameters and combine various workflows into a data pipeline. Please refer to [pipeline](https://github.com/radiome-lab/radiome/wiki/Config) for more information.
 
 ### Run
 
-You are all set now! Prepare image files and put them in a local directory or an S3 bucket you have access to. Then set appropriate parameters in the pipeline config file. 
+You are all set now! Prepare image resources and put them in a local directory or an S3 bucket you have access to. Make sure the naming is BIDS-compliant.
 
 Run:
 

@@ -4,11 +4,10 @@ generate:
 - Reference.md:
   - radiome.core:
     - radiome.core.resource_pool+
-    - radiome.core.schema+
-  - radiome.core.execution:
-    - radiome.core.execution.loader
-    - radiome.core.execution.executor
-    - radiome.core.execution.context
+    - radiome.core.workflow+
+    - radiome.core.context+
+  - radiome.core.jobs:
+    - radiome.core.jobs.job++
   - radiome.core.utils:
     - radiome.core.utils.mocks+
     - radiome.core.utils.s3++

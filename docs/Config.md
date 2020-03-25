@@ -34,8 +34,9 @@ steps:
 ### How Pipeline Executes
 
 1. Radiome loads and validates the config file.
-2. Steps are resolved in a top-down manner. In each step, workflow specified by `run` section is imported as a module dynamically,  then `create_workflow` function, the entry point, is extracted from the module.
-3. This function is called with parameters of `in` section, `resource pool`, and `context` (run-time information). 
+2. Steps are resolved in a top-down manner. In each step, workflow specified by `run` section is imported as a module,  then `create_workflow` function, the entry point, is extracted from the module.
+3. `create_workflow` is called with parameters from `in` section, a global `resource pool`, and `context` (run-time information). 
+4. Once all workflows finish, information of the pipeline is established. Radiome execution engine will do the computation and produce the outputs.
 
 
 

@@ -6,8 +6,8 @@ usage: radiome [-h] --config_file CONFIG_FILE [--working_dir WORKING_DIR]
                [--aws_output_creds_path AWS_OUTPUT_CREDS_PATH]
                [--aws_output_creds_profile AWS_OUTPUT_CREDS_PROFILE] [--n_cpus N_CPUS]
                [--mem_mb MEM_MB] [--mem_gb MEM_GB] [--save_working_dir]
-               [--disable_file_logging] [--enable_bids_validator]
-               [--bids_validator_config BIDS_VALIDATOR_CONFIG] [--version]
+               [--disable_file_logging] [--diagnostics] [--enable_bids_validator]
+               [--bids_validator_config BIDS_VALIDATOR_CONFIG] [-v]
                bids_dir outputs_dir
 
 Radiome Pipeline Runner
@@ -30,7 +30,8 @@ optional arguments:
   --working_dir WORKING_DIR
                         The local directory where temporary file and logs reside. If not
                         set,the output dir will be used. If the output dir is an S3
-                        bucket,you must provide a local directory.
+                        bucket,you must provide a local path or a temporary directory will be
+                        created.
   --participant_label [PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]]
                         The label of the participant that should be analyzed. The label
                         corresponds to sub-<participant_label> from the BIDS spec (so it does
@@ -70,11 +71,12 @@ optional arguments:
   --disable_file_logging
                         Disable file logging, this is useful for clusters that have disabled
                         file locking.
+  --diagnostics         Enable diagnostics dashboard of execution engine.
   --enable_bids_validator
                         skips bids validation
   --bids_validator_config BIDS_VALIDATOR_CONFIG
                         JSON file specifying configuration of bids-validator: See
                         https://github.com/INCF/bids-validator for more info
-  --version             show program's version number and exit
+  -v, --version         show program's version number and exit
 ```
 
