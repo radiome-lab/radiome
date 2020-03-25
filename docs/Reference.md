@@ -11,33 +11,13 @@ Strategy(self, forks=None, **kwargs)
 ```
 
 
-### ResourceKey
-```python
-ResourceKey(
-    self,
-    key:
-    typing.Union[str, typing.Dict[str, str], ForwardRef('ResourceKey'), NoneType] = None,
-    tags: typing.Union[typing.Set[str], NoneType] = None,
-    **kwargs)
-```
-Representation of a resource, matching BIDS specification.
+#### FORK_SEP
 
-Stores information contained in BIDS naming specs.
-E.g. `sub-001_ses-001_T1w.nii.gz`
 
-Entities are the key-value information encoded in the format
-`key-value` in the file name.
+#### FORMAT
 
-The suffix is the last part of the name, after the last underscore.
 
-Strategy is specific to radiome, and it is encoded in the `desc` entity,
-in the format `desc-strategy` in which strategy is encoded as `key-value`
-separated by `+`. E.g. `desc-skullstripping-afni+registration-ants`
-In case there is an actual value for this entity, the strategy will
-be encoded as `key-value#strategy`.
-
-The resource key object can work as a filter, in case an entity of suffix
-is a quantifier: * and ^
+#### KEYVAL_SEP
 
 
 ### ResourceKey
@@ -67,6 +47,163 @@ be encoded as `key-value#strategy`.
 
 The resource key object can work as a filter, in case an entity of suffix
 is a quantifier: * and ^
+
+
+#### branching_entities
+
+
+#### entities
+Retrieve a copy of entities.
+
+#### ENTITY_SEP
+
+
+#### FORMAT
+
+
+#### KEYVAL_SEP
+
+
+#### STRAT_SEP
+
+
+#### strategy
+Retrieve the strategy. An empty strategy will be
+created if not set.
+
+#### suffix
+Retrieve the suffix.
+
+#### supported_entities
+
+
+#### tags
+Retrieve a copy of the tags.
+
+#### valid_suffixes
+
+
+#### keys
+```python
+ResourceKey.keys()
+```
+Get a list of keys of defined entities and strategy.
+
+#### isfilter
+```python
+ResourceKey.isfilter()
+```
+Check if key is a filter.
+
+It will be considered a filter if it contains a quantifier.
+
+Returns:
+    True, if an entity or suffix is a quantifier.
+    False, otherwise.
+
+
+#### isbroad
+```python
+ResourceKey.isbroad()
+```
+Check if key is a broad key (*).
+
+Returns:
+    True, if there is no entity and suffix matches all.
+    False, otherwise.
+
+
+### ResourceKey
+```python
+ResourceKey(
+    self,
+    key:
+    typing.Union[str, typing.Dict[str, str], ForwardRef('ResourceKey'), NoneType] = None,
+    tags: typing.Union[typing.Set[str], NoneType] = None,
+    **kwargs)
+```
+Representation of a resource, matching BIDS specification.
+
+Stores information contained in BIDS naming specs.
+E.g. `sub-001_ses-001_T1w.nii.gz`
+
+Entities are the key-value information encoded in the format
+`key-value` in the file name.
+
+The suffix is the last part of the name, after the last underscore.
+
+Strategy is specific to radiome, and it is encoded in the `desc` entity,
+in the format `desc-strategy` in which strategy is encoded as `key-value`
+separated by `+`. E.g. `desc-skullstripping-afni+registration-ants`
+In case there is an actual value for this entity, the strategy will
+be encoded as `key-value#strategy`.
+
+The resource key object can work as a filter, in case an entity of suffix
+is a quantifier: * and ^
+
+
+#### branching_entities
+
+
+#### entities
+Retrieve a copy of entities.
+
+#### ENTITY_SEP
+
+
+#### FORMAT
+
+
+#### KEYVAL_SEP
+
+
+#### STRAT_SEP
+
+
+#### strategy
+Retrieve the strategy. An empty strategy will be
+created if not set.
+
+#### suffix
+Retrieve the suffix.
+
+#### supported_entities
+
+
+#### tags
+Retrieve a copy of the tags.
+
+#### valid_suffixes
+
+
+#### keys
+```python
+ResourceKey.keys()
+```
+Get a list of keys of defined entities and strategy.
+
+#### isfilter
+```python
+ResourceKey.isfilter()
+```
+Check if key is a filter.
+
+It will be considered a filter if it contains a quantifier.
+
+Returns:
+    True, if an entity or suffix is a quantifier.
+    False, otherwise.
+
+
+#### isbroad
+```python
+ResourceKey.isbroad()
+```
+Check if key is a broad key (*).
+
+Returns:
+    True, if there is no entity and suffix matches all.
+    False, otherwise.
 
 
 ### StrategyResourcePool
@@ -113,6 +250,39 @@ Context(working_dir: Union[str, os.PathLike], inputs_dir: Union[str, os.PathLike
 
 
 ## radiome.core.jobs.job
+
+
+### PythonJob
+```python
+PythonJob(self, function, reference=None)
+```
+Radiome job for Python functions.
+
+This job is to set up Python function in the steps of a workflow. Inputs of function should be
+set using attributes. Python functions must return a dict, which is mapping from names to values.
+
+
+
+### ComputedResource
+```python
+ComputedResource(self, job, field=None)
+```
+Represents the future result from a job, but not the true result.
+
+ComputedResource stores information that is needed to compute the result, but not the result itself.
+It can be used as inputs of other jobs and thus create a connection between jobs.
+
+
+
+### NipypeJob
+```python
+NipypeJob(self, interface: BaseInterface, reference=None)
+```
+Radiome job for nipype interfaces,
+
+NipypeJob is a uniform wrapper for all nipype interfaces such that nipype interfaces
+can receive results from or become inputs of other jobs.
+
 
 
 # radiome.core.utils

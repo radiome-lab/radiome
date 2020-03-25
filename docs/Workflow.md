@@ -11,15 +11,15 @@ Workflows are distributed as **namespace Python packages**. All workflows are un
 There are two types of inputs for a workflow.
 
 1. Resource: anatomical and functional image files, intermediate results, masks, templates, etc. All resources are organized in the global resource pool following BIDS standard. 
-2. Parameters: arguments that control the behavior of workflows, such as factors, booleans and times. Parameters can be the same for distinct resources. Radiome will read these parameters from pipeline config file and pass them into workflows.
+2. Parameters: arguments that control the behavior of workflows, such as factors, booleans and flags. Radiome will read these parameters from pipeline config file and pass them into workflows.
 
 ### How Workflows Work
 
 The entry point of a workflow is always `create_workflow(params, resource_pool, context)` function. 
 
-1.  Validate `params` against a schema in `spec.yml` to check whether types, ranges and other constraints are correct. Radiome provides this function in `radiome.core.schema.validate_inputs`. Call this function like this `validate_inputs(__file__, params)`.
+1.  Validate `params` against a schema in `spec.yml` to check whether types, ranges and other constraints are correct. 
 
-2. Select `resources ` from `resource pool` based on some conditions. 
+2. Select `resources ` from `resource pool` based on some rules. 
 
 3. Use functions, nipype interfaces or other tools to process `resources`. The outputs of current step can be connected to the inputs of next steps. For example:
 
