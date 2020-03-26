@@ -1,26 +1,12 @@
 language: python
 python:
-  - 3.7
+    - 3.8
+    - 3.7
+    - 3.6
 
-services:
-  - docker
+# Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+install: pip install -U tox-travis codecov git+https://github.com/radiome-lab/preprocessing.git
 
-install: docker build -t radiome-lab/radiome . && docker build -t radiome-lab/radiome:ci-test -f Dockerfile.test .
+# Command to run tests, e.g. python setup.py test
+script: tox
 
-before_script: env | grep -E -- 'TOXENV|CI|TRAVIS|TRAVIS_*|CODECOV_*' > ./travis.env
-script: docker run --env-file=./travis.env radiome-lab/radiome:ci-test
-
-# Assuming you have installed the travis-ci CLI tool, after you
-# create the Github repo and add it to Travis, run the
-# following command to finish PyPI deployment setup:
-# $ travis encrypt --add deploy.password
-# deploy:
-#   provider: pypi
-#   distributions: sdist bdist_wheel
-#   user: ccraddock
-#   password:
-#     secure: PLEASE_REPLACE_ME
-#   on:
-#     tags: true
-#     repo: radiome-flow/radiome
-#     python: 3.8
