@@ -94,8 +94,9 @@ class CLITestCase(unittest.TestCase):
         with self.assertRaises(OSError):
             cli.build_context(res)
 
+    @mock.patch('shutil.which')
     @mock.patch('subprocess.run')
-    def test_bids_validation(self, mock_subproc_run):
+    def test_bids_validation(self, mock_subproc_run, util):
         res = copy.deepcopy(self.parsed)
         res.bids_dir = tempfile.mkdtemp()
         res.enable_bids_validator = True

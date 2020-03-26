@@ -19,8 +19,8 @@ class S3ClientTestCase(unittest.TestCase):
     def test_s3(self):
         s3_client = boto3.client('s3')
         s3_client.create_bucket(Bucket=bucket_name)
-        # dst = tempfile.mkdtemp()
-        #
+        dst = tempfile.mkdtemp()
+
         # # Test upload
         # s3res = S3Resource(f's3://{bucket_name}', dst, aws_cred_path='env')
         # s3res.upload(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/s3'))

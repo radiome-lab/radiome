@@ -10,6 +10,6 @@ networkx==2.4
 nibabel==3.0.1
 nipype==1.4.2
 psutil==5.7.0
-PyYAML==5.3
+PyYAML==5.3.1
 s3fs==0.4.0
 xvfbwrapper==0.2.9
