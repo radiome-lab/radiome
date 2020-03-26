@@ -141,9 +141,9 @@ def build_context(args) -> context.Context:
     else:
         log_path = f'{mapping["working_dir"]}/{datetime.now().strftime("radiome_%Y_%m_%d_%H_%M.log")}'
         logging.basicConfig(
-            filename=log_path,
             level=logging.INFO,
-            format=log_format
+            format=log_format,
+            handlers=[logging.FileHandler(log_path)]
         )
         print(f'Logging at {log_path}')
 
