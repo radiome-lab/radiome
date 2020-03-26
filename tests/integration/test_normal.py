@@ -88,7 +88,7 @@ class NormalTestCase(unittest.TestCase):
             bucket_name = 'mybucket'
             s3_client.create_bucket(Bucket=bucket_name)
             s3 = s3fs.S3FileSystem()
-            bucket_path = f's3://{bucket_name}/outputs'
+            bucket_path = f's3://{bucket_name}/result'
             s3.makedir(bucket_path, create_parents=True)
             working_dir = tempfile.mkdtemp()
             args = [inputs,
@@ -99,12 +99,12 @@ class NormalTestCase(unittest.TestCase):
                     ]
             self.assertEqual(cli.main(args), 0)
 
-            # # Check working dir
-            # self.assertTrue(os.listdir(working_dir))
-            #
-            # # Check S3 Files
-            # self.assertTrue(s3.exists(f'{bucket_path}/derivatives/afni-skullstrip/sub-0050682/anat'))
-            # self.assertTrue(s3.exists(f'{bucket_path}/derivatives/initial/sub-0050682/anat'))
+            # Check working dir
+            self.assertTrue(os.listdir(working_dir))
+
+            # Check S3 Files
+            self.assertTrue(s3.exists(f'{bucket_path}/outputs/derivatives/afni-skullstrip/sub-0050682/anat'))
+            self.assertTrue(s3.exists(f'{bucket_path}/outputs/derivatives/initial/sub-0050682/anat'))
 
     def test_misc_params(self):
 

@@ -87,7 +87,7 @@ class S3Resource(Resource, os.PathLike):
         """
         if not os.path.exists(path):
             raise IOError(f"Can't read the path {path}.")
-        self._client.put(path, self.content, recursive=True)
+        self._client.put(path, f'{self.content}/{os.path.basename(path)}', recursive=True)
 
     def walk(self) -> Iterator[Tuple[str, list, list]]:
         """

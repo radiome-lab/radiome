@@ -21,28 +21,28 @@ class S3ClientTestCase(unittest.TestCase):
         s3_client.create_bucket(Bucket=bucket_name)
         dst = tempfile.mkdtemp()
 
-        # # Test upload
-        # s3res = S3Resource(f's3://{bucket_name}', dst, aws_cred_path='env')
-        # s3res.upload(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/s3'))
-        #
-        # # Test download
-        # sub = s3res / 's3' / 'folder' / 'test1.txt'
-        # self.assertTrue(
-        #     filecmp.cmp(sub(), os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/s3/folder/test1.txt'),
-        #                 shallow=False))
-        #
-        # sub2 = s3res % f'{bucket_name}/s3/folder/test1.txt'
-        # self.assertEqual(sub(), sub())
-        # self.assertTrue(filecmp.cmp(sub(), sub2(), shallow=False))
-        #
-        # # test walk
-        # res = []
-        # for x, y, z in s3res.walk():
-        #     res.append((x, y, z))
-        #
-        # self.assertIn(('mybucket', ['s3'], []), res)
-        # self.assertIn(('mybucket/s3', ['folder'], ['test.txt']), res)
-        # self.assertIn(('mybucket/s3/folder', [], ['test1.txt', 'test2.txt']), res)
+        # Test upload
+        s3res = S3Resource(f's3://{bucket_name}', dst, aws_cred_path='env')
+        s3res.upload(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/s3'))
+
+        # Test download
+        sub = s3res / 's3' / 'folder' / 'test1.txt'
+        self.assertTrue(
+            filecmp.cmp(sub(), os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/s3/folder/test1.txt'),
+                        shallow=False))
+
+        sub2 = s3res % f'{bucket_name}/s3/folder/test1.txt'
+        self.assertEqual(sub(), sub())
+        self.assertTrue(filecmp.cmp(sub(), sub2(), shallow=False))
+
+        # test walk
+        res = []
+        for x, y, z in s3res.walk():
+            res.append((x, y, z))
+
+        self.assertIn(('mybucket', ['s3'], []), res)
+        self.assertIn(('mybucket/s3', ['folder'], ['test.txt']), res)
+        self.assertIn(('mybucket/s3/folder', [], ['test1.txt', 'test2.txt']), res)
 
     @mock.patch.dict(os.environ, {'HOME': tempfile.mkdtemp()})
     def test_credentials(self):
