@@ -5,6 +5,8 @@ from typing import Tuple, Iterator
 import yaml
 from cerberus import Validator
 
+from radiome.core.utils import TemplateDictionaryBuilder
+
 supporting_templates = ['1.0']
 
 
@@ -66,6 +68,7 @@ def normalize_inputs(current_file, config: dict):
         raise FileNotFoundError(f"Can't find spec.yml file for {current_file}.")
     with open(spec_path, 'r') as f:
         spec_schema = yaml.safe_load(f)
+    spec_schema['inputs'] = spec_schema['inputs'] and TemplateDictionaryBuilder(spec_schema['inputs']).build()
     spec = Validator(schema).normalized(spec_schema)['inputs']
     validator = Validator(spec)
     config = validator.normalized(config)

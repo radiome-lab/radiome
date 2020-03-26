@@ -1,4 +1,6 @@
+import copy
 import hashlib
+from string import Formatter
 
 
 def _nested_repr(obj):
@@ -51,3 +53,34 @@ class Hashable:
         self._hash = None
         selfid = id(self)
         self.__longhash__()
+
+
+class TemplateDictionaryBuilder:
+    def __init__(self, mapping):
+        self._formatter = Formatter()
+        self._mapping = mapping
+        self._visited = set()
+
+    def __getitem__(self, item):
+        if item in self._visited:
+            raise ValueError(f'{item} has cyclic reference. Please check your template.')
+        if item not in self._mapping:
+            raise KeyError(f'variable "{item}" does not exist.')
+        self._visited.add(item)
+        if 'default' not in self._mapping[item]:
+            raise ValueError(f'{item} can not be substituted because it does not have a default value.')
+        template = str(self._mapping[item]['default'])
+        substituted = self._formatter.vformat(template, [], self)
+        self._visited.remove(item)
+        return substituted
+
+    def build(self):
+        res = {}
+        for k, v in self._mapping.items():
+            v = copy.copy(v)
+            if 'default' in v and v['type'] == 'string':
+                v['default'] = self[k]
+                res[k] = v
+            else:
+                res[k] = v
+        return res
