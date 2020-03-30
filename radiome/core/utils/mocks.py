@@ -11,7 +11,9 @@ import yaml
 from nipype.interfaces.base import File
 
 from radiome.core import cli
-from radiome.core.execution import Job, ComputedResource, pipeline
+from radiome.core.execution import Job, ComputedResource, pipeline, loader, DependencySolver
+from radiome.core.execution.executor import DaskExecution, Execution
+from radiome.core.execution.pipeline import load_resource
 from radiome.core.resource_pool import Resource, ResourcePool
 
 logger = logging.getLogger(__name__)
@@ -131,8 +133,18 @@ class WorkflowDriver:
                                aws_input_creds_profile=aws_input_creds_profile,
                                disable_file_logging=True)
         self._module = module_path
+        self._linear = False
+        self._graph = None
 
-    def run(self, config):
+    @property
+    def linear(self):
+        return self._linear
+
+    @linear.setter
+    def linear(self, val):
+        self._linear = val
+
+    def _build(self, config):
         with tempfile.NamedTemporaryFile(suffix='.yml', mode='a+') as tf:
             yaml.dump({'radiomeSchemaVersion': 1.0,
                        'class': 'pipeline',
@@ -146,4 +158,21 @@ class WorkflowDriver:
             tf.seek(0)
             self._args.config_file = tf.name
             ctx = cli.build_context(self._args)
-        return pipeline.build(ctx)
+
+        rp = ResourcePool()
+        load_resource(rp, ctx)
+        loader.load(self._module)(config, rp, ctx)
+        solver = DependencySolver(rp, ctx)
+        return ctx, solver
+
+    def build_graph(self, config):
+        _, solver = self._build(config)
+        return solver.graph
+
+    def run(self, config):
+        ctx, solver = self._build(config)
+        if self.linear:
+            res_rp = solver.execute(executor=Execution())
+        else:
+            res_rp = solver.execute(executor=DaskExecution(ctx=ctx))
+        return res_rp
