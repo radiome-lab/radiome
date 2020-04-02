@@ -131,6 +131,9 @@ class S3Resource(Resource, os.PathLike):
         else:
             return S3Resource(key, self._cwd, self._aws_cred_path, self._aws_cred_profile)
 
+    def __copy__(self):
+        return S3Resource(self.content, self._cwd, self._aws_cred_path, self._aws_cred_profile)
+
 
 def get_profile_credentials(path: str, profile_name='default'):
     config = ConfigParser()

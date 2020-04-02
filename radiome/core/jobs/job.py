@@ -86,6 +86,8 @@ class Job(Hashable):
 
         if not isinstance(value, Resource):
             value = Resource(value)
+        else:
+            value = copy.copy(value)
 
         self._inputs[attr] = value
         self._hash = None
