@@ -1,5 +1,6 @@
 import logging
 import os
+import tempfile
 from configparser import ConfigParser, NoOptionError, NoSectionError, ParsingError
 from typing import Iterator, Tuple
 
@@ -19,7 +20,7 @@ class S3Resource(Resource, os.PathLike):
 
     """
 
-    def __init__(self, content: str, working_dir: str, aws_cred_path: str = None, aws_cred_profile: str = None):
+    def __init__(self, content: str, working_dir: str = None, aws_cred_path: str = None, aws_cred_profile: str = None):
         """
         Initialize an S3 client, provide credentials through aws_cred_path or aws_cred_profile. Otherwise the client
         will try to connect anonymously.
@@ -45,6 +46,8 @@ class S3Resource(Resource, os.PathLike):
         else:
             self._client = s3fs.S3FileSystem(anon=True)
         super().__init__(content)
+        if working_dir is None:
+            working_dir = tempfile.mkdtemp(prefix='radiome.s3')
         self._cwd = working_dir
         self._aws_cred_path = aws_cred_path
         self._aws_cred_profile = aws_cred_profile

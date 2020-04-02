@@ -84,12 +84,11 @@ class Job(Hashable):
             self.__dict__[attr] = value
             return
 
-        if isinstance(value, (Resource, ResourcePool)):
-            self._inputs[attr] = value
-            self._hash = None
-            return
+        if not isinstance(value, Resource):
+            value = Resource(value)
 
-        raise AttributeError(f'Invalid input type: {type(value)}. It must be a Resource or ResourcePool')
+        self._inputs[attr] = value
+        self._hash = None
 
     def dependencies(self):
         return self._inputs.copy()
