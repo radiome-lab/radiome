@@ -126,7 +126,7 @@ def load(item: str) -> Callable:
         module = _import_path(_resolve_git(item, scratch), module_name)
         logger.info(f'Loaded the workflow {item} via git repo.')
     else:
-        module = _import_name(item)
+        module = _import_name(item) or _import_name(f'radiome.workflows.{item}')
         if module is None:
             module = _import_path(item, 'radiome_workflow_' + os.path.basename(item))
             logger.info(f'Loaded the workflow {item} via path.')

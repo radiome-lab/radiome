@@ -7,6 +7,7 @@ from nipype.interfaces.base import File, BaseInterface, Undefined
 
 from radiome.core.resource_pool import Resource, ResourcePool
 from radiome.core.utils import Hashable
+from radiome.core.utils.s3 import S3Resource
 
 logger = logging.getLogger('radiome.execution.jobs')
 
@@ -86,7 +87,7 @@ class Job(Hashable):
 
         if not isinstance(value, Resource):
             value = Resource(value)
-        else:
+        elif type(value) == Resource or type(value) == S3Resource:
             value = copy.copy(value)
 
         self._inputs[attr] = value
@@ -258,13 +259,10 @@ class NipypeJob(Job):
         if attr.startswith('_'):
             self.__dict__[attr] = value
             return
-
         if attr not in self._interface.inputs.visible_traits():
             raise AttributeError(f'Invalid input name: {attr}')
-
-        if not isinstance(value, (Resource, ResourcePool)):
-            value = Resource(value)
-        self._inputs[attr] = value
+        else:
+            super().__setattr__(attr, value)
 
     def __getstate__(self):
         return {
