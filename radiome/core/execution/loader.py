@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import tempfile
+from contextlib import contextmanager
 from functools import wraps
 from types import ModuleType
 from typing import Callable, Optional
@@ -29,14 +30,11 @@ def _import_name(name: str) -> Optional[ModuleType]:
         If module is found and imported successfully, the module
         will be returned. Otherwise, None will be returned.
     """
-    if name in sys.modules:
-        # Necessary for mocking function to work
-        importlib.reload(sys.modules[name])
-        return sys.modules[name]
-    elif importlib.util.find_spec(name) is not None:
-        return importlib.import_module(name)
-    else:
-        return None
+    try:
+        module = importlib.import_module(name)
+    except:
+        module = None
+    return module
 
 
 def _import_path(path: str, module_name: str, entry_file: str = '__init__.py') -> Optional[ModuleType]:
@@ -52,17 +50,29 @@ def _import_path(path: str, module_name: str, entry_file: str = '__init__.py') -
         If module is found and imported successfully, the module
         will be returned. Otherwise, None will be returned.
     """
-    spec = importlib.util.spec_from_file_location(module_name, f'{path}/{entry_file}')
-    if spec is None:
-        return None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    try:
-        spec.loader.exec_module(module)
-        return module
-    except BaseException:
-        del sys.modules[module_name]
-        return None
+
+    @contextmanager
+    def add_to_path(p):
+        import sys
+        old_path = sys.path
+        sys.path = sys.path[:]
+        sys.path.insert(0, p)
+        try:
+            yield
+        finally:
+            sys.path = old_path
+
+    with add_to_path(os.path.dirname(path)):
+        tokens = os.path.normpath(path).split(os.sep)
+        module_name = '.'.join(tokens[tokens.index('radiome') if 'radiome' in tokens else 0:])
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, f'{path}/{entry_file}')
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
+            return module
+        except:
+            return None
 
 
 def _resolve_git(url: str, destination: str) -> str:
