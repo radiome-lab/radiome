@@ -1,0 +1,12 @@
+radiomeSchemaVersion: 1.0
+
+# Describe the type of schema and how to execute, required.
+class: workflow
+
+# Name of the workflow. required.
+name: {package_name}
+
+# Input schema, fully compatible with Python cerberus
+inputs:
+  input_example:
+    type: boolean
