@@ -1,18 +1,18 @@
-name: sync wiki
+name: Sync wiki
 
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - uses: docker://decathlon/wiki-page-creator-action:2.0.0
         env:
           GH_PAT: ${{ secrets.DOCS_PUSH }}
