@@ -91,18 +91,22 @@ ENV PATH=/usr/lib/ants:$PATH
 RUN apt-get install -y ants
 
 # Install and setup Miniconda
-ENV PATH=/usr/local/miniconda/bin:$PATH
 RUN curl -sO https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash Miniconda3-latest-Linux-x86_64.sh -b -p /usr/local/miniconda && \
     rm Miniconda3-latest-Linux-x86_64.sh
 
+ENV PATH=/usr/local/miniconda/bin:$PATH
+
 RUN conda init
 RUN conda update -n base -c defaults conda
+RUN conda install pip
 
 # Install radiome on base environment
 COPY . /code
 WORKDIR /code
 RUN pip install -e '.'
-RUN pip install git+https://github.com/radiome-lab/preprocessing.git
+
+# RUN pip install git+https://github.com/radiome-lab/preprocessing.git
+
 #RUN chmod +x /code/radiome/cli.py
 #ENTRYPOINT ['/code/radiome/cli.py']
