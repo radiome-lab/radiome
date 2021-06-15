@@ -35,12 +35,12 @@ def build(context: Context, disable_concurrency=False, **kwargs) -> ResourcePool
     for entry, params in schema.steps(context.pipeline_config):
         loader.load(entry)(params, rp, context)
 
-    print('Executing pipeline.......')
+    logger.info('Executing pipeline...')
     if disable_concurrency:
         res_rp = DependencySolver(rp, context).execute(executor=Execution())
     else:
         res_rp = DependencySolver(rp, context).execute(executor=DaskExecution(ctx=context))
-    print('Execution Completed.')
+    logger.info('Execution Completed.')
 
     if not context.save_working_dir:
         shutil.rmtree(context.working_dir)
