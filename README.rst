@@ -16,12 +16,7 @@ Radiome
 
 Configurable Pipeline for the Analysis of Medical Imaging Data.
 
-
-Features
---------
-
-* TODO
-  TODO
+Radiome is a BIDS-first pipeline manager and executor. Its modularity allows the user to fine-tune what, how, and in which order the a pipeline should run.
 
 Developers
 ----------
