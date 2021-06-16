@@ -56,7 +56,14 @@ setup(
     include_package_data=True,
     keywords='radiome',
     name='radiome',
-    packages=find_namespace_packages(include=['radiome.core.*']),
+    packages=[
+        p
+        for p in find_namespace_packages(
+            include=['radiome.core.*'],
+            exclude=['tests']
+        )
+        if 'tests' not in p.split('.')
+    ],
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,

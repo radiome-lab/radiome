@@ -114,17 +114,19 @@ class DaskExecution(Execution):
         SGs = list(graph.subgraph(c) for c in nx.weakly_connected_components(graph))
         futures = []
         for SG in SGs:
-            futures += [self._client.submit(
-                self.execute_subgraph,
-                SG=SG,
-                pure=False,
-                resources={
-                    'storage': sum([
-                        SG.nodes[resource]['job'].resources()['storage']
-                        for resource in nx.topological_sort(SG)
-                    ])
-                }
-            )]
+            futures += [
+                self._client.submit(
+                    self.execute_subgraph,
+                    SG=SG,
+                    pure=False,
+                    resources={
+                        'storage': sum([
+                            SG.nodes[resource]['job'].resources()['storage']
+                            for resource in nx.topological_sort(SG)
+                        ])
+                    }
+                )
+            ]
 
         logger.info(f'Joining execution of {len(futures)} executions:'
                     f' {list(str(s.key) for s in futures)}')
@@ -134,6 +136,7 @@ class DaskExecution(Execution):
             for d in self._client.gather(futures, errors='skip')
             for k, v in d.items()
         }
+
         return results
 
     def execute_subgraph(self, SG):
