@@ -52,7 +52,7 @@ setup(
         'test': test_requirements,
     },
     install_requires=requirements,
-    long_description=readme,
+    long_description=readme + '\n\n',
     include_package_data=True,
     keywords='radiome',
     name='radiome',

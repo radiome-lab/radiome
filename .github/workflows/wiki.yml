@@ -15,9 +15,9 @@ jobs:
       - uses: actions/checkout@main
       - uses: docker://decathlon/wiki-page-creator-action:2.0.0
         env:
-          GH_PAT: ${{ secrets.DOCS_PUSH }}
-          ACTION_MAIL: puzhao@utexas.edu
-          ACTION_NAME: puorc
+          GH_PAT: ${{ secrets.GITHUB_TOKEN }}
+          ACTION_MAIL: bot@radiome-lab.org
+          ACTION_NAME: Radiome Bot
           OWNER: radiome-lab
           REPO_NAME: radiome
           MD_FOLDER: docs
