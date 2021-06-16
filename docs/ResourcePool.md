@@ -39,3 +39,20 @@ R('sub-A00008326_bold') not in R('sub-A00008326_ses-*_bold')
 R('sub-A00008326_bold') in R('sub-A00008326_ses-^_bold')
 R('sub-A00008326_ses-BAS2_bold') not in R('sub-A00008326_ses-^_bold')
 ```
+
+To handle different preprocessing strategies, a specialization of the ResourcePool and ResourceKey are created.
+
+```python
+R('sub-A00008326_desc-skullstripping-afni+nuis-gsr_bold')
+```
+
+This structure makes it possible to match resources from the same stragety in a StrategyResourcePool, or resources from previous steps, e.g.:
+
+```python
+
+# These resources participate in the same
+
+R('sub-A00008326_T1w')
+R('sub-A00008326_desc-skullstripping-afni_mask')
+R('sub-A00008326_desc-skullstripping-afni+nuis-gsr_bold')
+```

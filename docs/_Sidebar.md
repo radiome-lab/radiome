@@ -8,4 +8,4 @@
 * [How to contribute](https://github.com/radiome-lab/radiome/wiki/How_to_contribute)
 * [API](https://github.com/radiome-lab/radiome/wiki/Reference)
 * [Credits](https://github.com/radiome-lab/radiome/wiki/Credits)
-* [History](https://github.com/radiome-lab/radiome/wiki/History)
+* [Changelog](https://github.com/radiome-lab/radiome/wiki/Changelog)

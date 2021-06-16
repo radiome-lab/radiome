@@ -17,14 +17,14 @@ setup.py
 
 Note that all modules must be under `radiome/workflows`. `__init__.py` must not present in `radiome` or `radiome/workflows` folder. Otherwise, this namespace package would be invalid. Besides, to make `setuptools` discover the namespace package, `find_namespace_packages` is used instead of `find_packages` in `setup.py`.  If you want to learn more about namespace packages, please refer to [namespace package](https://packaging.python.org/guides/packaging-namespace-packages/).
 
-Radiome has two requirements over a workflow: 
+Radiome has two requirements over a workflow:
 
 1. a `create_workflow` callable is the entry point to execute the workflow. It must exist in the module.
 2. a `spec.yml` file must present at the same level as the python file that includes `create_workflow`. It stores description and input schema.
 
-There can be multiple `create_workflow` and `spec.yml` if the module has more than one workflow. 
+There can be multiple `create_workflow` and `spec.yml` if the module has more than one workflow.
 
-In our example, the procedures of this workflow are 
+In our example, the procedures of this workflow are
 
 ```
 afni.Refit  -->  ants.DenoiseImage --> afni.Resample
@@ -70,7 +70,7 @@ from .workflow import create_workflow
 
 Let's explain it more:
 
-1. Nipype interfaces are used to invoke native tools, such as AFNI, ANTs or FSL. 
+1. Nipype interfaces are used to invoke native tools, such as AFNI, ANTs or FSL.
 2. `create_workflow` always receives three arguments. `config` has the value of parameters or flags for this workflow.  It should conform to the schema in `spec.yml`. For instance, the config can be `{'denoise': True}` in our example.  `resource_pool` is for all image resources, such as T1w, masks, brain, etc. These resources can be retrieved through specified rules. More information on `resource_pool` is [here](https://github.com/radiome-lab/radiome/wiki/ResourcePool). `Context` is the immutable object for runtime information, which we don't use in this project.
 3. `radiome.core.workflow` is a decorator on `create_workflow` function, it will register the decorated function as an entry point and add additional features.
 
@@ -88,9 +88,9 @@ for _, rp in resource_pool[['T1w']]:
     # process the files
 ```
 
- `StrategyResourcePool` is a proxy pool that allows iteration and modification simultaneously. All operations, such as look up or save resources on `StrategyResourcePool `, are mapped to the underlying `ResourcePool`. Therefore, `anat_image` represents all `T1w` resource we need to process, 
+ `StrategyResourcePool` is a proxy pool that allows iteration and modification simultaneously. All operations, such as look up or save resources on `StrategyResourcePool `, are mapped to the underlying `ResourcePool`. Therefore, `anat_image` represents all `T1w` resource we need to process,
 
-Now it's time to create jobs to process such images. Currently Radiome supports two kinds of jobs: `NipypeJob` and `PythonJob`.  `NipypeJob` is the wrapper for all niype interfaces. 
+Now it's time to create jobs to process such images. Currently Radiome supports two kinds of jobs: `NipypeJob` and `PythonJob`.  `NipypeJob` is the wrapper for all niype interfaces.
 
 Initialize the actual interface in kwarg `interface=` while giving the job a name in `reference`.
 
@@ -141,7 +141,7 @@ anat_deoblique.deoblique = True
 For nipype:
 
 ```python
-preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')  
+preproc.connect(anat_deoblique, 'out_file', outputnode, 'refit')
 ```
 
 For Radiome NipypeJob:
@@ -150,7 +150,7 @@ For Radiome NipypeJob:
 outputnode.refit = anat_deoblique.out_file
 ```
 
-It is pretty straightforward, isn't it? 
+It is pretty straightforward, isn't it?
 
 However, one important point is when you access an attribute in righthand expression, you are manipulating a `ComputedResource`. They will not compute and return a result immediately. `ComputedResource` can become inputs of other jobs. In this way, connections among the jobs are established. Computation happens after all workflows finish execution. Each `ComputedResource` is a node in the execution graph and, if not saved to `resource pool`, will be discarded after completion. Therefore, if you want the `ComputedResource` to be produced in your output directory, you should keep them in the `resource pool`.
 
@@ -229,11 +229,11 @@ Append nipype to `requirements.txt`
 nipype
 ```
 
-Finally let's do some tests to make sure everything is sweet! Radiome provides `WorkflowDriver` to run a single workflow and return a `resource pool` containing all results. The usage is 
+Finally let's do some tests to make sure everything is sweet! Radiome provides `WorkflowDriver` to run a single workflow and return a `resource pool` containing all results. The usage is
 
 ```python
 wf = WorkflowDriver(entry_dir, test_data_dir)
-res_rp = wf.run(config={'denoise': True}) 
+res_rp = wf.run(config={'denoise': True})
 ```
 
 Add some unit tests to this project.
@@ -242,13 +242,13 @@ Add some unit tests to this project.
 - radiome
     - workflows
         - example
-                __init__.py
-                workflow.py
-                spec.yml
+            __init__.py
+            workflow.py
+            spec.yml
     - tests
-    	 - data
-     			sub-0050682_T1w.nii.gz (Come from http://fcon_1000.projects.nitrc.org/)
-    	 test_example.py
+        - data
+            sub-0050682_T1w.nii.gz (Come from http://fcon_1000.projects.nitrc.org/)
+        test_example.py
 requirements.txt
 setup.py
 ```
@@ -303,7 +303,7 @@ $ python tests/test_example.py
 
 Currently radiome is not available on pypi, but you should be able to install it from the github repo.
 
-The content is the location for the outputs. It is a path such as `some_dir/derivatives/example/sub-0050682/anat/sub-0050682_label-reorient_T1w.nii.gz`. `example` is from the `name` in your `spec.yml` file. All output files are organized following the BIDS outputs standard. 
+The content is the location for the outputs. It is a path such as `some_dir/derivatives/example/sub-0050682/anat/sub-0050682_label-reorient_T1w.nii.gz`. `example` is from the `name` in your `spec.yml` file. All output files are organized following the BIDS outputs standard.
 
 Now you should have a good knowledge of Radiome workflows. You are welcome to contribute workflows to the whole community!
 
