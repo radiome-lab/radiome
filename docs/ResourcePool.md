@@ -26,18 +26,18 @@ This class is specialized to act as subsets and supersets of other `ResourceKeys
 
 ```python
 # subset ⊆ superset
-R('sub-A00008326_ses-BAS2_bold') in R('sub-A00008326_bold')
+R('sub-A00008326_ses-BAS2_mask') in R('sub-A00008326_mask')
 ```
 
-and it has two query operators: `*` and `^`. The asterisk allow to filter for `ResourceKeys` that has any value for a specific key, but the key is present. For the carret operator, it filter for `ResourceKeys` that does not has a specific key:
+and it has two query operators: `*` and `^`. The asterisk allow to filter for `ResourceKeys` that has any value for a specific key, but the key is present. For the caret operator, it filter for `ResourceKeys` that does not has a specific key:
 
 ```python
-R('sub-A00008326_ses-BAS2_bold') in R('sub-*_ses-BAS2_bold')
-R('sub-A00008326_ses-BAS2_bold') in R('sub-*_ses-*_bold')
-R('sub-A00008326_bold') not in R('sub-A00008326_ses-*_bold')
+R('sub-A00008326_ses-BAS2_mask') in R('sub-*_ses-BAS2_mask')
+R('sub-A00008326_ses-BAS2_mask') in R('sub-*_ses-*_mask')
+R('sub-A00008326_mask') not in R('sub-A00008326_ses-*_mask')
 
-R('sub-A00008326_bold') in R('sub-A00008326_ses-^_bold')
-R('sub-A00008326_ses-BAS2_bold') not in R('sub-A00008326_ses-^_bold')
+R('sub-A00008326_mask') in R('sub-A00008326_ses-^_mask')
+R('sub-A00008326_ses-BAS2_mask') not in R('sub-A00008326_ses-^_mask')
 ```
 
 To handle different preprocessing strategies, a specialization of the ResourcePool and ResourceKey are created.
