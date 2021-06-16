@@ -1,5 +1,5 @@
 ### Install Radiome
-
+<!--
 To install radiome, run this command in your terminal:
 
 ```bash
@@ -7,17 +7,23 @@ $ pip install radiome
 ```
 
 You can also install from sources.
-
+-->
 Clone the public repository
 
 ```bash
 $ git clone https://github.com/radiome-lab/radiome.git
 ```
 
-And install
+and install
 
 ```
 $ python setup.py install
+```
+
+or
+
+```bash
+pip install git+https://github.com/radiome-lab/radiome.git
 ```
 
 ### Install Workflow
