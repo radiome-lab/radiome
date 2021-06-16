@@ -1,0 +1,9 @@
+radiomeSchemaVersion: 1.0
+
+class: workflow
+
+name: fake_workflow
+
+inputs:
+    msg:
+        type: string

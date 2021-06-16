@@ -1,0 +1,7 @@
+radiome:
+  version: 0.1.0
+  specification:
+    radiome.workflows.anatomical.initial:
+    radiome.workflows.anatomical.n4:
+    radiome.workflows.anatomical.denoise:
+    radiome.workflows.anatomical.skullstripping.afni:

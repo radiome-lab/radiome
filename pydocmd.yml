@@ -1,0 +1,22 @@
+site_name: "Radiome Documentation"
+
+generate:
+- Reference.md:
+  - radiome.core:
+    - radiome.core.resource_pool+
+    - radiome.core.workflow+
+    - radiome.core.context+
+  - radiome.core.jobs:
+    - radiome.core.jobs.job++
+  - radiome.core.utils:
+    - radiome.core.utils.mocks+
+    - radiome.core.utils.s3++
+
+# required in the software but useless
+pages:
+- Home: index.md
+- radiome.core:
+  - Radiome: Reference.md
+
+gens_dir: docs
+headers: markdown

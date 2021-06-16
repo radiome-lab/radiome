@@ -1,12 +1,8 @@
-# Config file for automatic testing at travis-ci.org
-
 language: python
 python:
-  - 3.8
-  - 3.7
-  - 3.6
-#  - 3.5
-#  - 2.7
+    - 3.8
+    - 3.7
+    - 3.6
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install: pip install -U tox-travis codecov
@@ -14,17 +10,3 @@ install: pip install -U tox-travis codecov
 # Command to run tests, e.g. python setup.py test
 script: tox
 
-# Assuming you have installed the travis-ci CLI tool, after you
-# create the Github repo and add it to Travis, run the
-# following command to finish PyPI deployment setup:
-# $ travis encrypt --add deploy.password
-deploy:
-  provider: pypi
-  distributions: sdist bdist_wheel
-  user: ccraddock
-  password:
-    secure: PLEASE_REPLACE_ME
-  on:
-    tags: true
-    repo: ccraddock/radiome
-    python: 3.8

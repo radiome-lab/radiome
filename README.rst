@@ -1,5 +1,5 @@
 =======
-radiome
+Radiome
 =======
 
 .. image:: https://travis-ci.org/radiome-lab/radiome.svg?branch=master
@@ -21,6 +21,7 @@ Features
 --------
 
 * TODO
+  TODO
 
 Developers
 ----------
