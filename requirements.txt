@@ -11,6 +11,6 @@ nibabel==3.0.1
 nipype==1.4.2
 psutil==5.7.0
 PyYAML==5.4
-s3fs==0.4.0
+s3fs==2022.11.0
 xvfbwrapper==0.2.9
 dataclasses
